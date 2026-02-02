@@ -313,7 +313,7 @@ def add_params_component(prefix, name, component):
 
 
 def build_agent_ui_demo():
-    with gr.Blocks(title="Mobile Use WebUI", theme=gr.themes.Default()) as demo:
+    with gr.Blocks(title="Mobile Use WebUI") as demo:
         with gr.Row():
             gr.Markdown(
                 """
@@ -460,7 +460,6 @@ def build_agent_ui_demo():
                     with gr.Column():
                         chatbot = gr.Chatbot(
                             elem_id="chatbot",
-                            type="messages",
                             label="ToolAgent",
                             show_label=False,
                             height=550,
@@ -520,4 +519,4 @@ def update_agent_type(agent_type):
 
 if __name__ == "__main__":
     demo = build_agent_ui_demo()
-    demo.launch()
+    demo.launch(theme=gr.themes.Default())
