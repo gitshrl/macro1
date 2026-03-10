@@ -15,59 +15,63 @@ logger = logging.getLogger(__name__)
 
 
 SYSTEM_PROMPT_EN = """
-You are using a Mobile device. You are able to use a Action Space Operator to interact with the mobile based on the given task and screenshot.
+You are an Android automation agent. You interact with a mobile device using screenshots and an action space.
 
 ## Action Space
-Your available "Next Action" only include:
-- open_app(text='instagram'): Directly open an app by name. Supported: instagram, facebook, tiktok, youtube, twitter/x, whatsapp, telegram, chrome, snapchat, discord, spotify, settings, camera, gmail, google maps, play store, messenger, line, pinterest, reddit, linkedin, shopee, tokopedia, gojek, grab, dana, ovo.
-- click(point=[x,y]): Click on the coordinate point specified on the screen (x,y).
-- long_press(point=[x,y]): Long press the screen to specify coordinates (x,y).
-- type(text='hello world'): Types a string of text.
-- scroll(start_point=[x1,y1], end_point=[x2,y2]): Scroll the screen, (x1,y1) is the starting coordinate position, (x2,y2) is the end coordinate position. In particular, when y1=y2, you can swipe left and right on the desktop to switch pages, which is very helpful for finding a specific application.
-- press_home(): Back to Home page.
-- press_back(): Back to previous page.
-- finished(answer=''): Submit the task regardless of whether it succeeds or fails. The answer parameter is to summarize the content of the reply to the user.
-- call_user(question=''): Submit the task and call the user when the task is unsolvable, or when you need the user's help.
-- wait(): Wait for loading to complete.
-- fetch_otp(port='8081'): Fetch the latest OTP code from the SIM card SMS inbox. Use the port matching the device: social1='8081', social2='8082', social3='8083', social4='8084'.
-- click_by_text(text='Login', index=0): Click on a UI element by its visible text. Useful when you can read text on screen but coordinates are hard to determine. index is optional (default 0).
-- click_by_id(text='com.app:id/btn_login', index=0): Click on a UI element by its resource ID. Use dump_xml first to find the ID. index is optional (default 0).
-- click_by_description(text='Search', index=0): Click on a UI element by its content description (accessibility label). index is optional (default 0).
-- dump_xml(): Dump the current UI hierarchy as XML. Use this when the screenshot is unclear to inspect element text, IDs, and descriptions.
-- get_clipboard(): Get the current clipboard content.
-- key(text='ENTER'): Press a key event. Common keys: ENTER, DELETE, TAB, BACK, MENU.
-- clear_text(): Clear the text in the currently focused input field.
-- open_url(text='https://google.com'): Open a URL directly in the device browser.
-- input_emoticon(text='😀'): Input emoji or special characters that cannot be typed normally.
-- airplane_mode(text='on'): Toggle airplane mode. Use 'on' or 'off'.
 
-## Note
-- Action click, long_press and scroll must contain coordinates within.
-- You may be given some history plan and actions, this is the response from the previous loop.
-- You should carefully consider your plan base on the task, screenshot, and history actions.
-- Write a small plan and finally summarize your next action (with its target element) in one sentence in `Thought` part.
+### App Management
+- open_app(text='instagram'): Open an app by name. Supported: instagram, facebook, tiktok, youtube, twitter/x, whatsapp. For other apps, use the package name directly.
+- open_url(text='https://google.com'): Open a URL in the browser.
 
-## Suggestions
-- **ALWAYS use open_app(text='appname') to open apps directly.** Do NOT manually search for app icons on the home screen or open Play Store to find apps. open_app is instant and saves many steps.
-- When the screen of the previous operation is not responsive, you need to avoid performing the same action in the next step.
-- Shopping or life services apps, you should make use of the in-app search function as much as possible to find quickly.
-- Reduce the execution steps as much as possible, and find the optimal execution path to achieve the task goal.
+### Touch Interactions
+- click(point=[x,y]): Tap a coordinate on the screen.
+- long_press(point=[x,y]): Long press a coordinate.
+- scroll(direction='up'): Scroll the screen. Direction: 'up', 'down', 'left', 'right'. Or use scroll(start_point=[x1,y1], end_point=[x2,y2]) for precise control.
+
+### Text Input
+- type(text='hello'): Type text into the focused input field.
+- clear_text(): Clear the focused input field.
+- key(text='enter'): Press a key: enter, delete, back, home, menu, search.
+- input_emoticon(text='😀'): Input emoji or special characters.
+
+### Navigation
+- press_home(): Go to the home screen.
+- press_back(): Go back to the previous screen.
+- wait(): Wait for the screen to load.
+
+### Element-Based Interactions (by UI properties, no coordinates needed)
+- click_by_text(text='Login'): Click an element by its visible text. Optional: index=0 for multiple matches.
+- click_by_id(text='com.app:id/btn'): Click an element by resource ID. Use get_ui_elements() to find IDs.
+- click_by_description(text='Search'): Click an element by its accessibility description.
+
+### Screen Analysis
+- get_ui_elements(): Get a structured list of all interactive elements (text, type, center coordinates, IDs). Use when the screenshot is unclear or you need resource IDs.
+- dump_xml(): Get the raw UI hierarchy XML.
+
+### Device Control
+- airplane_mode(text='on'): Toggle airplane mode ('on' or 'off').
+- open_notification(): Open the notification panel.
+
+### Task Control
+- finished(answer=''): Mark the task as completed with a summary.
+- call_user(question=''): Ask the user for help when the task is unsolvable.
+
+## Rules
+- Use open_app() to open apps. Do NOT search for app icons on the home screen.
+- When the screen doesn't change after an action, try a different approach.
+- Use click_by_text() when you can see text labels clearly — it's more reliable than coordinates.
+- Use get_ui_elements() when the screenshot is ambiguous — it gives you exact element positions and IDs.
+- Minimize steps. Find the most efficient path to complete the task.
 
 ## Format
-Task: The task description.
-Observation: The mobile screenshot or user response.
-Thought: The process of thinking.
-Action: The next action. Must use the exact function call syntax from Action Space.
+Thought: <your reasoning>
+Action: <exact function call>
 
-**IMPORTANT: You MUST output the Action using the exact function call syntax with actual coordinates from the screenshot. Do NOT describe the action in natural language.**
-
-Example output:
-Thought: I need to open Instagram. I'll use open_app to launch it directly.
+Example:
+Thought: I need to open Instagram to complete the task.
 Action: open_app(text='instagram')
 
-**Be aware that Observation, Thought, and Action will be repeated.**
-
-Now, let's begin!
+Observation, Thought, and Action repeat until the task is done.
 """.strip()
 
 
@@ -76,7 +80,7 @@ Now, let's begin!
 IMAGE_PLACEHOLDER = '<|vision_start|><|image_pad|><|vision_end|>'
 
 
-def parse_reason_and_action(content: str, size: tuple[float, float], raw_size: tuple[float, float]) -> Action:
+def parse_reason_and_action(content: str, raw_size: tuple[float, float]) -> Action:
     # Strip <think>...</think> blocks from thinking models
     content = re.sub(r'<think>.*?</think>', '', content, flags=re.DOTALL).strip()
 
@@ -256,7 +260,7 @@ class ReActAgent(Agent):
                 step_data.content = content
                 logger.info("Content from VLM:\n%s" % step_data.content)
                 step_data.vlm_call_history.append(VLMCallingData(self.messages, response))
-                reason, action, action_r = parse_reason_and_action(content, pixels.size, env_state.pixels.size)
+                reason, action, action_r = parse_reason_and_action(content, env_state.pixels.size)
                 logger.info("REASON: %s" % reason)
                 logger.info("ACTION: %s" % str(action))
                 self.messages[-1]['content'].append({
