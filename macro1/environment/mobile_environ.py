@@ -13,6 +13,39 @@ from macro1.utils.utils import contains_non_ascii
 
 logger = logging.getLogger(__name__)
 
+APP_PACKAGES = {
+    "instagram": "com.instagram.android",
+    "facebook": "com.facebook.katana",
+    "tiktok": "com.zhiliaoapp.musically",
+    "youtube": "com.google.android.youtube",
+    "twitter": "com.twitter.android",
+    "x": "com.twitter.android",
+    "whatsapp": "com.whatsapp",
+    "telegram": "org.telegram.messenger",
+    "chrome": "com.android.chrome",
+    "snapchat": "com.snapchat.android",
+    "discord": "com.discord",
+    "spotify": "com.spotify.music",
+    "settings": "com.android.settings",
+    "camera": "com.android.camera2",
+    "gmail": "com.google.android.gm",
+    "google maps": "com.google.android.apps.maps",
+    "maps": "com.google.android.apps.maps",
+    "play store": "com.android.vending",
+    "messenger": "com.facebook.orca",
+    "line": "jp.naver.line.android",
+    "pinterest": "com.pinterest",
+    "reddit": "com.reddit.frontpage",
+    "linkedin": "com.linkedin.android",
+    "shopee": "com.shopee.id",
+    "tokopedia": "com.tokopedia.tkpd",
+    "gojek": "com.gojek.app",
+    "grab": "com.grabtaxi.passenger",
+    "dana": "id.dana",
+    "ovo": "ovo.id",
+    "gopay": "com.gojek.app",
+}
+
 HYPERCLIPPER_PKG = "id.intiva.hyperclipper"
 HYPERCLIPPER_ACTIVITY = f"{HYPERCLIPPER_PKG}/.MainActivity"
 SELECTOR_TIMEOUT = 5
@@ -33,12 +66,13 @@ class Environment:
         self.wait_after_action_seconds = wait_after_action_seconds
 
         self._action_space = [
-            'open', 'click', 'long_press', 'type', 'key',
+            'open', 'open_app', 'click', 'long_press', 'type', 'key',
             'swipe', 'press_home', 'press_back', 'wait',
             'answer', 'system_button', 'clear_text', 'take_note',
             'open_url', 'push_file', 'install_apk', 'airplane_mode',
             'input_emoticon', 'click_by_text', 'click_by_id',
             'click_by_description', 'dump_xml', 'get_clipboard',
+            'fetch_otp',
         ]
         self._register_function = {}
 
@@ -188,6 +222,21 @@ class Environment:
     def _dump_xml(self) -> str:
         return self._u2.dump_hierarchy()
 
+    def _fetch_otp(self, port: str) -> Optional[str]:
+        import urllib.request
+        import json
+        try:
+            url = f"http://127.0.0.1:{port}/sms/latest-otp"
+            req = urllib.request.Request(url, method='GET')
+            with urllib.request.urlopen(req, timeout=10) as resp:
+                data = json.loads(resp.read().decode())
+                otp = data.get('otp') or data.get('code') or data.get('message')
+                logger.info(f"Fetched OTP from port {port}: {otp}")
+                return str(otp) if otp else None
+        except Exception as e:
+            logger.warning(f"Failed to fetch OTP from port {port}: {e}")
+            return None
+
     def _get_clipboard(self) -> Optional[str]:
         if not self._ensure_hyperclipper():
             return None
@@ -217,12 +266,22 @@ class Environment:
                     package_name = action.parameters['text']
                     self._d.app_start(package_name)
 
+                case 'open_app':
+                    app_name = action.parameters['text'].strip().lower()
+                    package = APP_PACKAGES.get(app_name)
+                    if package:
+                        logger.info(f"Opening app: {app_name} -> {package}")
+                        self._d.app_start(package)
+                    else:
+                        logger.warning(f"Unknown app '{app_name}', trying as package name")
+                        self._d.app_start(app_name)
+
                 case 'click':
-                    x, y = action.parameters['coordinate']
+                    x, y = action.parameters.get('point') or action.parameters.get('coordinate')
                     self._d.click(x, y)
 
                 case 'long_press':
-                    x, y = action.parameters['coordinate']
+                    x, y = action.parameters.get('point') or action.parameters.get('coordinate')
                     duration = action.parameters.get('time', 2.0)
                     self._d.swipe(x, y, x, y, duration=duration)
 
@@ -265,9 +324,9 @@ class Environment:
                     text = action.parameters['text']
                     self._d.keyevent(text)
 
-                case 'swipe':
-                    x1, y1 = action.parameters['coordinate']
-                    x2, y2 = action.parameters['coordinate2']
+                case 'swipe' | 'scroll':
+                    x1, y1 = action.parameters.get('start_point') or action.parameters.get('coordinate')
+                    x2, y2 = action.parameters.get('end_point') or action.parameters.get('coordinate2')
                     self._d.swipe(x1, y1, x2, y2, duration=0.5)
 
                 case 'press_home':
@@ -373,6 +432,9 @@ class Environment:
 
                 case 'get_clipboard':
                     result = self._get_clipboard()
+
+                case 'fetch_otp':
+                    result = self._fetch_otp(action.parameters['port'])
 
                 case _:
                     raise ValueError(f"Unknown action: {action.name}")

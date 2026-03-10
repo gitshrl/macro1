@@ -3,8 +3,12 @@
 
 import argparse
 import logging
+import os
 import sys
-from macro1 import Environment, VLMWrapper, Agent
+from dotenv import load_dotenv
+from macro1 import Agent
+
+load_dotenv()
 
 logging.basicConfig(
     level=logging.INFO,
@@ -13,9 +17,6 @@ logging.basicConfig(
 )
 logger = logging.getLogger('run_task')
 
-OPENROUTER_KEY = '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'
-OPENROUTER_URL = 'https://openrouter.ai/api/v1'
-
 def main():
     parser = argparse.ArgumentParser(description='Run macro1 task on Android emulator')
     parser.add_argument('task', help='Task to execute, e.g. "Open YouTube and search for cats"')
@@ -23,8 +24,8 @@ def main():
                         help='ADB device serial (default: emulator-5554)')
     parser.add_argument('--host', default='127.0.0.1', help='ADB host (default: 127.0.0.1)')
     parser.add_argument('--port', type=int, default=5037, help='ADB port (default: 5037)')
-    parser.add_argument('--model', '-m', default='qwen/qwen3-vl-235b-a22b-thinking',
-                        help='VLM model (default: openai/gpt-5.3-codex)')
+    parser.add_argument('--model', '-m', default='qwen/qwen3.5-397b-a17b',
+                        help='VLM model (default: qwen/qwen3.5-397b-a17b)')
     parser.add_argument('--max-steps', type=int, default=20, help='Max steps (default: 20)')
     parser.add_argument('--no-home', action='store_true', help='Skip reset to HOME screen')
     args = parser.parse_args()
@@ -35,26 +36,20 @@ def main():
     logger.info(f'Steps   : max {args.max_steps}')
     print()
 
-    # Setup environment
-    env = Environment(
-        serial_no=args.device,
-        host=args.host,
-        port=args.port,
-        go_home=not args.no_home,
-    )
-
-    # Setup VLM
-    vlm = VLMWrapper(
-        model_name=args.model,
-        api_key=OPENROUTER_KEY,
-        base_url=OPENROUTER_URL,
-    )
-
     # Setup agent
     agent = Agent.from_params({
         "type": "SingleAgent",
-        'env': env,
-        'vlm': vlm,
+        'env': {
+            'serial_no': args.device,
+            'host': args.host,
+            'port': args.port,
+            'go_home': not args.no_home,
+        },
+        'vlm': {
+            'model_name': args.model,
+            'api_key': os.environ['VLM_API_KEY'],
+            'base_url': os.environ['VLM_BASE_URL'],
+        },
         'max_steps': args.max_steps,
     })
 
@@ -67,7 +62,10 @@ def main():
         if action:
             logger.info(f'Step {i+1}: [{action.name}] {action.parameters}')
 
-    logger.info('Done!')
+    ep = agent.episode_data
+    if ep.message:
+        logger.error(f'Agent error: {ep.message}')
+    logger.info(f'Status: {ep.status}, Steps: {ep.num_steps}')
 
 if __name__ == '__main__':
     main()

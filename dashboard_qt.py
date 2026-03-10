@@ -21,7 +21,7 @@ DEVICES = {
     "social4 (XL)":   "emulator-5560",
 }
 
-DEFAULT_MODEL = "anthropic/claude-sonnet-4-6"
+DEFAULT_MODEL = "qwen/qwen3.5-397b-a17b"
 
 running_procs = {}
 
@@ -49,7 +49,7 @@ class TaskWorker(QThread):
     def run(self):
         self.log_signal.emit(f"🔄 [{self.label}] Starting...\n")
         cmd = [
-            os.path.expanduser("~/macro1/venv/bin/python"),
+            sys.executable,
             os.path.expanduser("~/macro1/run_task.py"),
             self.prompt,
             "--device", self.serial,
@@ -183,12 +183,17 @@ class MainWindow(QMainWindow):
         self.stop_btn.setStyleSheet("background-color: #f44336; color: white; font-size: 14px; font-weight: bold; border-radius: 6px;")
         self.stop_btn.clicked.connect(self._stop_all)
         
+        self.copy_btn = QPushButton("📋  Copy Log")
+        self.copy_btn.setFixedHeight(40)
+        self.copy_btn.clicked.connect(lambda: QApplication.clipboard().setText(self.log_output.toPlainText()))
+
         self.clear_btn = QPushButton("🗑  Clear Log")
         self.clear_btn.setFixedHeight(40)
         self.clear_btn.clicked.connect(lambda: self.log_output.clear())
         
         btn_row.addWidget(self.run_btn)
         btn_row.addWidget(self.stop_btn)
+        btn_row.addWidget(self.copy_btn)
         btn_row.addWidget(self.clear_btn)
         controls_layout.addLayout(btn_row)
 
@@ -205,7 +210,7 @@ class MainWindow(QMainWindow):
         self.log_output = QTextEdit()
         self.log_output.setReadOnly(True)
         self.log_output.setFont(QFont("Monospace", 10))
-        self.log_output.setStyleSheet("background-color: #1e1e1e; color: #d4d4d4;")
+        self.log_output.setStyleSheet("background-color: #1e1e1e; color: #d4d4d4; selection-background-color: #264f78; selection-color: #ffffff;")
         log_layout.addWidget(self.log_output)
         splitter.addWidget(log_group)
 

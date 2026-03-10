@@ -99,7 +99,7 @@ class AgentConfig(BaseConfig):
 
 class ReActAgentConfig(AgentConfig):
     num_latest_screenshots: int = 3
-    max_action_retry: int = 3
+    max_action_retry: int = 5
     prompt_config: str = None
 
 

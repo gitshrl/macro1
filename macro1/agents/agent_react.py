@@ -6,7 +6,7 @@ from macro1.action import ACTION_SPACE
 from macro1.schema.schema import *
 from macro1.environment.mobile_environ import Environment
 from macro1.utils.vlm import VLMWrapper
-from macro1.utils.utils import encode_image_url, contains_chinese, smart_resize
+from macro1.utils.utils import encode_image_url, smart_resize
 from macro1.agents import Agent
 from macro1.schema.config import ReActAgentConfig
 
@@ -19,6 +19,7 @@ You are using a Mobile device. You are able to use a Action Space Operator to in
 
 ## Action Space
 Your available "Next Action" only include:
+- open_app(text='instagram'): Directly open an app by name. Supported: instagram, facebook, tiktok, youtube, twitter/x, whatsapp, telegram, chrome, snapchat, discord, spotify, settings, camera, gmail, google maps, play store, messenger, line, pinterest, reddit, linkedin, shopee, tokopedia, gojek, grab, dana, ovo.
 - click(point=[x,y]): Click on the coordinate point specified on the screen (x,y).
 - long_press(point=[x,y]): Long press the screen to specify coordinates (x,y).
 - type(text='hello world'): Types a string of text.
@@ -28,6 +29,17 @@ Your available "Next Action" only include:
 - finished(answer=''): Submit the task regardless of whether it succeeds or fails. The answer parameter is to summarize the content of the reply to the user.
 - call_user(question=''): Submit the task and call the user when the task is unsolvable, or when you need the user's help.
 - wait(): Wait for loading to complete.
+- fetch_otp(port='8081'): Fetch the latest OTP code from the SIM card SMS inbox. Use the port matching the device: social1='8081', social2='8082', social3='8083', social4='8084'.
+- click_by_text(text='Login', index=0): Click on a UI element by its visible text. Useful when you can read text on screen but coordinates are hard to determine. index is optional (default 0).
+- click_by_id(text='com.app:id/btn_login', index=0): Click on a UI element by its resource ID. Use dump_xml first to find the ID. index is optional (default 0).
+- click_by_description(text='Search', index=0): Click on a UI element by its content description (accessibility label). index is optional (default 0).
+- dump_xml(): Dump the current UI hierarchy as XML. Use this when the screenshot is unclear to inspect element text, IDs, and descriptions.
+- get_clipboard(): Get the current clipboard content.
+- key(text='ENTER'): Press a key event. Common keys: ENTER, DELETE, TAB, BACK, MENU.
+- clear_text(): Clear the text in the currently focused input field.
+- open_url(text='https://google.com'): Open a URL directly in the device browser.
+- input_emoticon(text='😀'): Input emoji or special characters that cannot be typed normally.
+- airplane_mode(text='on'): Toggle airplane mode. Use 'on' or 'off'.
 
 ## Note
 - Action click, long_press and scroll must contain coordinates within.
@@ -36,7 +48,7 @@ Your available "Next Action" only include:
 - Write a small plan and finally summarize your next action (with its target element) in one sentence in `Thought` part.
 
 ## Suggestions
-- If you need to open an APP, when the home page is not available, you can scroll down to the search page to find the corresponding APP.
+- **ALWAYS use open_app(text='appname') to open apps directly.** Do NOT manually search for app icons on the home screen or open Play Store to find apps. open_app is instant and saves many steps.
 - When the screen of the previous operation is not responsive, you need to avoid performing the same action in the next step.
 - Shopping or life services apps, you should make use of the in-app search function as much as possible to find quickly.
 - Reduce the execution steps as much as possible, and find the optimal execution path to achieve the task goal.
@@ -45,7 +57,13 @@ Your available "Next Action" only include:
 Task: The task description.
 Observation: The mobile screenshot or user response.
 Thought: The process of thinking.
-Action: The next action. Must be one of the Action Space.
+Action: The next action. Must use the exact function call syntax from Action Space.
+
+**IMPORTANT: You MUST output the Action using the exact function call syntax with actual coordinates from the screenshot. Do NOT describe the action in natural language.**
+
+Example output:
+Thought: I need to open Instagram. I'll use open_app to launch it directly.
+Action: open_app(text='instagram')
 
 **Be aware that Observation, Thought, and Action will be repeated.**
 
@@ -53,58 +71,32 @@ Now, let's begin!
 """.strip()
 
 
-SYSTEM_PROMPT_ZH = """
-你正在使用移动设备。你可以根据给定的任务和截图使用给定的操作动作与移动设备进行交互。
-
-## 操作动作
-你可以使用一下任一动作作为下一步的操作：
-- click(point=[x,y]): 点击屏幕上指定的坐标点(x,y)
-- long_press(point=[x,y]): 长按屏幕指定的坐标点(x,y)
-- type(text='hello world'): 输入一段文本字符串
-- scroll(start_point=[x1,y1], end_point=[x2,y2]): 滚动屏幕，(x1,y1) 为起始坐标位置，(x2,y2) 为结束坐标位置。特别地，当y1=y2时可以实现桌面左右滑动切换页面，这对寻找指定应用非常有帮助。
-- press_home(): 回到主页
-- press_back(): 返回上一页
-- finished(answer=''): 任务结束标志， 无论任务成功与否，都需要通过该操作结束，answer 参数值则为总结回复用户的内容
-- call_user(question=''): 当任务无法解决或需要用户帮助时，向用户发起帮助提问，例如需要输入登录相关信息
-- wait():等待加载完成
-
-## 注意事项
-- 操作click、long_press和scroll必须包含其中的坐标。
-- 可能会提供一些历史计划和操作，这是前一个循环的响应。
-- 您应基于任务、截图和历史操作仔细考虑您的计划。
-- 编写一个小计划，并最终将您下一个行动（及其目标元素）用一句话总结在“Thought”部分中。
-
-## 操作建议
-- 如果你需要打开某个APP应用，当主页没有时，你可以通过下滑屏幕进入搜索页查找相应的APP
-- 当前前后操作的屏幕无响应时，你需要避免在下一步再执行相同的操作
-- 购物或者生活服务类APP，你应该尽可能利用APP内的搜索功能从而能够快速找到
-- 尽可能减少执行步骤，寻找最优的执行路径已达成任务目标
-
-## 格式说明
-Task: 任务描述。
-Observation: 移动设备截屏或用户响应。
-Thought: 思考或总结的过程，思考是一定要结合历史的操作。
-Action: 下一步操作。必须是操作动作中的一个。
-Finally: 如果任务已完成，输出最终回复结果
-
-**请注意 Observation Thought 和 Action 将会重复出现，直至任务结束**
-
-现在，让我们开始吧！
-""".strip()
 
 
 IMAGE_PLACEHOLDER = '<|vision_start|><|image_pad|><|vision_end|>'
 
 
 def parse_reason_and_action(content: str, size: tuple[float, float], raw_size: tuple[float, float]) -> Action:
+    # Strip <think>...</think> blocks from thinking models
+    content = re.sub(r'<think>.*?</think>', '', content, flags=re.DOTALL).strip()
+
     reason = re.search(r'Thought:(.*)Action:', content, flags=re.DOTALL)
     if reason:
         reason_s = reason.group(1).strip()
     else:
         reason_s = None
-    
+
     action_name = '|'.join(ACTION_SPACE.keys())
+    # Try standard format first: Action: click(...)
     search_res = re.search(fr'Action: *({action_name})\((.*)\)', content, flags=re.DOTALL)
+
+    # Fallback: action call inside markdown code blocks
+    if not search_res:
+        search_res = re.search(fr'```\s*\n?\s*({action_name})\((.*?)\)\s*\n?\s*```', content, flags=re.DOTALL)
+
+    # Fallback: bare action call anywhere in content
+    if not search_res:
+        search_res = re.search(fr'({action_name})\((.*?)\)', content, flags=re.DOTALL)
 
     if not search_res:
         raise Exception("Action is undefined")
@@ -143,6 +135,8 @@ class ReActAgent(Agent):
         if max_steps is not None:
             self.max_steps = max_steps
         self._init_data(goal=goal)
+        self._recent_actions = []
+        self._max_repeat = 3
 
     def _remain_most_recent_images(self):
         couter = 0
@@ -175,7 +169,7 @@ class ReActAgent(Agent):
 
         # Init messages
         if self.curr_step_idx == 0:
-            system_prompt = SYSTEM_PROMPT_ZH if contains_chinese(self.goal) else SYSTEM_PROMPT_EN
+            system_prompt = SYSTEM_PROMPT_EN
             logger.info(f"system_prompt:\n{system_prompt}")
             self.messages.append({
                 'role': 'system', 
@@ -194,9 +188,7 @@ class ReActAgent(Agent):
             observation = self._user_input
             img_msg = None
         else:
-            # Fixed Picture sequence inconsistency problem in vllm0.7.2 
-            # and Compatible QwenAPI error: '<400> InternalError.Algo.InvalidParameter: Invalid text: <|image_pad|>'
-            observation = '' if 'dashscope.aliyuncs.com' in str(self.vlm.client.base_url) else IMAGE_PLACEHOLDER
+            observation = ''
 
             # Get the current environment screen
             env_state = self.env.get_state()
@@ -229,9 +221,38 @@ class ReActAgent(Agent):
 
         counter = self.max_reflection_action
         reason, action = None, None
+        content = None
         while counter > 0:
             try:
-                content = response.choices[0].message.content
+                # Handle thinking models where choices may be None
+                msg = None
+                if response.choices:
+                    msg = response.choices[0].message
+                    content = msg.content or ''
+                else:
+                    content = ''
+
+                # For thinking models: use reasoning content as fallback
+                if not content.strip() and msg is not None:
+                    extras = msg.model_extra or {}
+                    reasoning = (
+                        getattr(msg, 'reasoning_content', None)
+                        or getattr(msg, 'reasoning', None)
+                        or extras.get('reasoning')
+                        or extras.get('reasoning_content')
+                    )
+                    if reasoning:
+                        content = reasoning
+                        logger.info("Using reasoning content as fallback")
+                # Also check response-level model_extra for reasoning
+                if not content.strip():
+                    resp_extras = response.model_extra or {}
+                    reasoning = resp_extras.get('reasoning') or resp_extras.get('reasoning_content')
+                    if reasoning:
+                        content = reasoning
+                        logger.info("Using response-level reasoning as fallback")
+                if not content.strip():
+                    raise Exception("Empty content from VLM")
                 step_data.content = content
                 logger.info("Content from VLM:\n%s" % step_data.content)
                 step_data.vlm_call_history.append(VLMCallingData(self.messages, response))
@@ -244,7 +265,7 @@ class ReActAgent(Agent):
                 })
                 break
             except Exception as e:
-                logger.warning(f"Failed to parse the action from: {content}.")
+                logger.warning(f"Failed to parse the action from content ({type(e).__name__}: {e}).")
                 msg = {
                     'type': 'text', 
                     'text': f"Failed to parse the action from: {content}.Error is {e.args}"
@@ -258,6 +279,25 @@ class ReActAgent(Agent):
 
         step_data.action = action
         step_data.thought = reason
+
+        # Stuck detection: warn if same action repeats too many times
+        action_key = f"{action.name}({action.parameters})"
+        self._recent_actions.append(action_key)
+        if len(self._recent_actions) >= self._max_repeat:
+            last_n = self._recent_actions[-self._max_repeat:]
+            if len(set(last_n)) == 1:
+                logger.warning(f"Stuck detected: '{action_key}' repeated {self._max_repeat} times")
+                self.messages[-1]['content'].append({
+                    'type': 'text',
+                    'text': (
+                        f"WARNING: You have repeated the exact same action '{action.name}' "
+                        f"{self._max_repeat} times in a row. The screen is not changing. "
+                        f"You MUST try a completely different approach. Consider: "
+                        f"press_back(), scroll to find a different element, or "
+                        f"re-read the screen carefully for the correct target. "
+                        f"Do NOT repeat the same action again."
+                    )
+                })
 
         if action.name.upper() == 'FINISHED':
             logger.info(f"Finished: {action}")

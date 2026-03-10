@@ -1,5 +1,4 @@
 #!/bin/bash
-source ~/macro1/venv/bin/activate
 export DISPLAY=:0
 cd ~/macro1
 python3 -c "
