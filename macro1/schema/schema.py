@@ -1,7 +1,6 @@
 from enum import Enum
 from dataclasses import dataclass, field
 from typing import Optional, List, Dict, Any
-from datetime import datetime
 
 from PIL import Image
 
@@ -94,52 +93,9 @@ class SingleAgentStepData(BaseStepData):
 
 
 @dataclass
-class Macro1StepData(SingleAgentStepData):
-    # Action related
-    action_type_tokens: Optional[List[str]] = None
-    action_type_logprobs: Optional[List[float]] = None
-    # Plan related
-    plan: Optional[str] = None
-    sub_goal: Optional[str] = None
-    # State related
-    progress: Optional[str] = None
-    memory: Optional[str] = None
-    # Reflection related
-    reflection_outcome: Optional[str] = None
-    reflection_error: Optional[str] = None
-    trajectory_reflection_outcome: Optional[str] = None
-    trajectory_reflection_error: Optional[str] = None
-    evaluation_result: Optional[str] = None
-    evaluation_reason: Optional[str] = None
-    # Knowledge
-    knowledge: Optional[List[str]] = None
-    # Time related
-    step_duration: Optional[float] = None
-    exec_duration: Optional[float] = None
-
-
-@dataclass
 class BaseEpisodeData:
     goal: str
     num_steps: Optional[int] = None
     status: Optional[str] = None
     message: Optional[str] = None
     trajectory: Optional[List[BaseStepData]] = None
-
-
-@dataclass
-class Macro1EpisodeData(BaseEpisodeData):
-    trajectory: List[Macro1StepData] = field(default_factory=list)
-    finish_count: int = 0
-    memory: Optional[str] = ""
-
-
-@dataclass
-class HierarchicalAgentTaskData:
-    task: str
-    episode_data: Macro1EpisodeData
-    task_type: Optional[str] = None
-    sub_tasks: Optional[List[str]] = None
-    sub_tasks_return: Optional[List[str]] = None
-    sub_tasks_episode_data: Optional[List[Macro1EpisodeData]] = None
-    current_sub_task_idx: Optional[int] = None

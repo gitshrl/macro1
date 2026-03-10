@@ -32,7 +32,6 @@ You are an Android automation agent. You interact with a mobile device using scr
 - type(text='hello'): Type text into the focused input field.
 - clear_text(): Clear the focused input field.
 - key(text='enter'): Press a key: enter, delete, back, home, menu, search.
-- input_emoticon(text='😀'): Input emoji or special characters.
 
 ### Navigation
 - press_home(): Go to the home screen.
@@ -47,9 +46,9 @@ You are an Android automation agent. You interact with a mobile device using scr
 ### Screen Analysis
 - get_ui_elements(): Get a structured list of all interactive elements (text, type, center coordinates, IDs). Use when the screenshot is unclear or you need resource IDs.
 - dump_xml(): Get the raw UI hierarchy XML.
+- get_clipboard(): Read the current clipboard text. Use after copying text or to read auto-copied OTP codes.
 
 ### Device Control
-- airplane_mode(text='on'): Toggle airplane mode ('on' or 'off').
 - open_notification(): Open the notification panel.
 
 ### Task Control

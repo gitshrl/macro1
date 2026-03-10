@@ -136,7 +136,7 @@ _OUTPUT_PATH = flags.DEFINE_string(
 # Agent specific.
 _AGENT_NAME = flags.DEFINE_string('agent_name', 'macro1', help='Agent name.')
 
-_MACRO1_AGENT_NAME = flags.DEFINE_string('macro1_agent_name', 'MultiAgent', help='Macro1 agent name.')
+_MACRO1_AGENT_NAME = flags.DEFINE_string('macro1_agent_name', 'ReAct', help='Macro1 agent name.')
 
 _MACRO1_CONFIG_PATH = flags.DEFINE_string('macro1_config_path', None, help='Path to Macro1 agent config file.')
 

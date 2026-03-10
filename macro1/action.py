@@ -61,14 +61,6 @@ ACTION_SPACE = {
             "text": {"type": "str", "description": "Key name: enter, delete, back, home, menu, search, etc."}
         }
     },
-    "input_emoticon": {
-        "name": "INPUT EMOTICON",
-        "description": "Input emoji or special characters.",
-        "parameters": {
-            "text": {"type": "str", "description": "The emoji or special text."}
-        }
-    },
-
     # -- Navigation --
     "press_home": {
         "name": "PRESS HOME",
@@ -118,15 +110,12 @@ ACTION_SPACE = {
         "name": "DUMP XML",
         "description": "Dump the raw UI hierarchy as XML. Use get_ui_elements for a cleaner view.",
     },
+    "get_clipboard": {
+        "name": "GET CLIPBOARD",
+        "description": "Read the current clipboard text. Use after long-pressing and copying text, or to read OTP codes that were auto-copied.",
+    },
 
     # -- Device control --
-    "airplane_mode": {
-        "name": "AIRPLANE MODE",
-        "description": "Toggle airplane mode.",
-        "parameters": {
-            "text": {"type": "str", "description": "'on' or 'off'."}
-        }
-    },
     "open_notification": {
         "name": "OPEN NOTIFICATION",
         "description": "Open the notification panel.",

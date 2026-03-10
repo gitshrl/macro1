@@ -10,7 +10,7 @@ from PIL import Image
 from unittest.mock import Mock, MagicMock
 from typing import Generator
 
-# Mark integration tests
+
 def pytest_configure(config):
     """Add custom markers."""
     config.addinivalue_line(
@@ -38,7 +38,6 @@ def has_adb_device() -> bool:
         return False
 
 
-# Skip conditions
 skip_if_no_vlm = pytest.mark.skipif(
     not has_vlm_credentials(),
     reason="VLM_API_KEY and VLM_BASE_URL environment variables required"
@@ -72,9 +71,8 @@ def mock_vlm_response() -> Mock:
     response = Mock()
     response.choices = [Mock()]
     response.choices[0].message = Mock()
-    response.choices[0].message.content = "Mock response content"
-    response.choices[0].delta = Mock()
-    response.choices[0].delta.content = "Mock"
+    response.choices[0].message.content = "Thought: Mock reasoning.\nAction: click(point=[540, 960])"
+    response.model_extra = {}
     return response
 
 
@@ -85,16 +83,16 @@ def mock_vlm_wrapper() -> Mock:
     vlm.model_name = "mock-model"
     vlm.max_tokens = 1024
     vlm.temperature = 0.0
-    
-    # Mock predict method
+
     mock_response = Mock()
     mock_response.choices = [Mock()]
     mock_response.choices[0].message = Mock()
-    mock_response.choices[0].message.content = """<thinking>I need to click on the Photos app.</thinking>
-<tool_call>{"name": "macro1", "arguments": {"action": "click", "point": [540, 960]}}</tool_call>
-<conclusion>Clicking on Photos app icon.</conclusion>"""
+    mock_response.choices[0].message.content = """Thought: I need to click on the Photos app.
+Action: click(point=[540, 960])"""
+    mock_response.choices[0].message.model_extra = {}
+    mock_response.model_extra = {}
     vlm.predict = Mock(return_value=mock_response)
-    
+
     return vlm
 
 
@@ -105,7 +103,6 @@ def mock_env_state(mock_image) -> 'EnvState':
     return EnvState(
         pixels=mock_image,
         package="com.example.app",
-        a11y_tree=None,
         device_time="Thu Dec 4 10:00:00 GMT 2025"
     )
 
@@ -118,20 +115,10 @@ def mock_environment(mock_env_state) -> Mock:
     env.port = 5037
     env.serial_no = "emulator-5554"
     env.window_size = (1080, 1920)
-    env._action_space = [
-        'open', 'click', 'long_press', 'type', 'key',
-        'swipe', 'press_home', 'press_back', 'wait',
-        'answer', 'system_button', 'clear_text', 'take_note',
-        'open_url', 'push_file', 'install_apk', 'airplane_mode',
-        'input_emoticon', 'click_by_text', 'click_by_id',
-        'click_by_description', 'dump_xml', 'get_clipboard',
-    ]
-    
-    # Mock methods
+
     env.get_state = Mock(return_value=mock_env_state)
-    env.reset = Mock()
     env.execute_action = Mock()
-    
+
     return env
 
 
@@ -143,14 +130,14 @@ def mock_environment(mock_env_state) -> Mock:
 def sample_action() -> 'Action':
     """Create a sample Action for testing."""
     from macro1.schema.schema import Action
-    return Action(name='click', parameters={'coordinate': [540, 960]})
+    return Action(name='click', parameters={'point': [540, 960]})
 
 
 @pytest.fixture
 def sample_vlm_config() -> dict:
     """Create sample VLM config dict."""
     return {
-        'model_name': 'qwen2.5-vl-72b-instruct',
+        'model_name': 'qwen/qwen3.5-397b-a17b',
         'api_key': 'test-api-key',
         'base_url': 'https://api.example.com/v1',
         'max_retry': 3,
@@ -192,18 +179,18 @@ def sample_agent_config(sample_vlm_config, sample_env_config) -> dict:
 def temp_yaml_config(tmp_path, sample_vlm_config, sample_env_config) -> str:
     """Create a temporary YAML config file for testing."""
     import yaml
-    
+
     config = {
         'vlm': sample_vlm_config,
         'env': sample_env_config,
         'max_steps': 10,
         'enable_log': False,
     }
-    
+
     config_path = tmp_path / "test_config.yaml"
     with open(config_path, 'w') as f:
         yaml.dump(config, f)
-    
+
     return str(config_path)
 
 
@@ -225,4 +212,3 @@ def test_log_dir(tmp_path) -> str:
     log_dir = tmp_path / "logs"
     log_dir.mkdir()
     return str(log_dir)
-

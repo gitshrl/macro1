@@ -1,5 +1,4 @@
 import time
-import asyncio
 import logging
 from typing import Any, Optional
 from openai import OpenAI, ChatCompletion
@@ -26,7 +25,6 @@ class VLMWrapper:
         ):
         self.model_name = model_name
         self.client = OpenAI(api_key=api_key, base_url=base_url)
-        # self.aclient = AsyncOpenAI(api_key=api_key, base_url=base_url)
 
         self.max_retry = max_retry
         self.retry_waiting_seconds = retry_waiting_seconds
@@ -48,16 +46,6 @@ class VLMWrapper:
         """
         counter = self.max_retry
         wait_seconds = self.retry_waiting_seconds
-
-        # import copy
-        # messages_s = copy.deepcopy(messages)
-        # for msg in messages_s:
-        #     content = msg['content']
-        #     if isinstance(content, list):
-        #         for cnt in content:
-        #             cnt.pop('image_url', None)
-        # import json
-        # print("messages: ", json.dumps(messages_s, ensure_ascii=False, indent=2))
 
         # Add max_pixels to all image content if specified
         if self.max_pixels is not None:

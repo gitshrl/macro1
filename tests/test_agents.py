@@ -1,23 +1,19 @@
 """
 Tests for macro1/agents/
 
-Tests the Agent base class and various agent implementations including
-ReActAgent, QwenAgent, MultiAgent, and HierarchicalAgent.
+Tests the Agent base class and ReActAgent implementation.
 """
 
 import pytest
 from unittest.mock import Mock, patch, MagicMock
 from PIL import Image
-import json
 
 from macro1.agents.base import Agent
 from macro1.agents.agent_react import ReActAgent, parse_reason_and_action
-from macro1.agents.agent_qwen import QwenAgent, _parse_response, _parse_response_qwen3, slim_messages
-from macro1.agents.multi_agent import MultiAgent
 from macro1.schema.schema import (
     Action, EnvState, AgentState, AgentStatus,
-    BaseStepData, SingleAgentStepData, Macro1StepData,
-    BaseEpisodeData, Macro1EpisodeData
+    BaseStepData, SingleAgentStepData,
+    BaseEpisodeData,
 )
 
 
@@ -29,178 +25,249 @@ class TestParseReasonAndAction:
     """Tests for ReAct agent's parse_reason_and_action function."""
 
     def test_parse_click_action(self):
-        """Test parsing a click action."""
         content = """Thought: I need to click on the Photos icon to open it.
 Action: click(point=[540, 960])"""
-        
-        size = (1080, 1920)
-        raw_size = (1080, 1920)
-        
-        reason, action, action_s = parse_reason_and_action(content, size, raw_size)
-        
+
+        # Use 1000x1000 so normalization is identity (coords are 0-1000 range)
+        raw_size = (1000, 1000)
+        reason, action, action_s = parse_reason_and_action(content, raw_size)
+
         assert reason is not None
         assert "click" in reason.lower() or "Photos" in reason
         assert action.name == 'click'
+        assert action.parameters['point'] == (540, 960)
 
     def test_parse_type_action(self):
-        """Test parsing a type action."""
         content = """Thought: I need to type the search query.
 Action: type(text="hello world")"""
-        
-        size = (1080, 1920)
+
         raw_size = (1080, 1920)
-        
-        reason, action, action_s = parse_reason_and_action(content, size, raw_size)
-        
+        reason, action, action_s = parse_reason_and_action(content, raw_size)
+
         assert action.name == 'type'
         assert action.parameters['text'] == "hello world"
 
     def test_parse_finished_action(self):
-        """Test parsing a finished action."""
         content = """Thought: The task is complete.
 Action: finished(answer="Task done")"""
-        
-        size = (1080, 1920)
+
         raw_size = (1080, 1920)
-        
-        reason, action, action_s = parse_reason_and_action(content, size, raw_size)
-        
+        reason, action, action_s = parse_reason_and_action(content, raw_size)
+
         assert action.name == 'finished'
+        assert action.parameters['answer'] == "Task done"
 
     def test_parse_invalid_action_raises(self):
-        """Test that invalid action format raises exception."""
         content = "This is not a valid action format"
-        
-        size = (1080, 1920)
         raw_size = (1080, 1920)
-        
+
         with pytest.raises(Exception):
-            parse_reason_and_action(content, size, raw_size)
+            parse_reason_and_action(content, raw_size)
 
+    def test_parse_open_app_action(self):
+        content = """Thought: I need to open Instagram.
+Action: open_app(text='instagram')"""
 
-class TestQwenParseResponse:
-    """Tests for Qwen agent's _parse_response function."""
-
-    def test_parse_click_response(self):
-        """Test parsing Qwen click response."""
-        content = """<thinking>I need to click on the button.</thinking>
-<tool_call>{"name": "macro1", "arguments": {"action": "left_click", "point": [540, 960]}}</tool_call>
-<conclusion>Clicking the button.</conclusion>"""
-        
-        size = (1080, 1920)
         raw_size = (1080, 1920)
-        
-        thought, action, action_s, summary = _parse_response(content, size, raw_size)
-        
-        assert thought == "I need to click on the button."
+        reason, action, action_s = parse_reason_and_action(content, raw_size)
+
+        assert action.name == 'open_app'
+        assert action.parameters['text'] == 'instagram'
+
+    def test_parse_scroll_direction_action(self):
+        content = """Thought: I need to scroll down to see more content.
+Action: scroll(direction='down')"""
+
+        raw_size = (1080, 1920)
+        reason, action, action_s = parse_reason_and_action(content, raw_size)
+
+        assert action.name == 'scroll'
+        assert action.parameters['direction'] == 'down'
+
+    def test_parse_click_by_text_action(self):
+        content = """Thought: I see the Login button, I'll click it.
+Action: click_by_text(text='Login')"""
+
+        raw_size = (1080, 1920)
+        reason, action, action_s = parse_reason_and_action(content, raw_size)
+
+        assert action.name == 'click_by_text'
+        assert action.parameters['text'] == 'Login'
+
+    def test_parse_action_in_code_block(self):
+        content = """Thought: I need to click.
+```
+click(point=[540, 960])
+```"""
+
+        raw_size = (1080, 1920)
+        reason, action, action_s = parse_reason_and_action(content, raw_size)
+
         assert action.name == 'click'
-        assert summary == "Clicking the button."
 
-    def test_parse_swipe_response(self):
-        """Test parsing Qwen swipe response."""
-        content = """<thinking>Need to scroll down.</thinking>
-<tool_call>{"name": "macro1", "arguments": {"action": "swipe", "start_point": [540, 1500], "end_point": [540, 500]}}</tool_call>
-<conclusion>Scrolling down.</conclusion>"""
-        
-        size = (1080, 1920)
+    def test_parse_strips_think_tags(self):
+        content = """<think>Some internal reasoning here</think>
+Thought: I need to press home.
+Action: press_home()"""
+
         raw_size = (1080, 1920)
-        
-        thought, action, action_s, summary = _parse_response(content, size, raw_size)
-        
-        assert action.name == 'swipe'
-        assert 'coordinate' in action.parameters
-        assert 'coordinate2' in action.parameters
+        reason, action, action_s = parse_reason_and_action(content, raw_size)
 
-    def test_parse_type_response(self):
-        """Test parsing Qwen type response."""
-        content = """<thinking>Enter the text.</thinking>
-<tool_call>{"name": "macro1", "arguments": {"action": "type", "content": "Hello"}}</tool_call>
-<conclusion>Typing Hello.</conclusion>"""
-        
-        size = (1080, 1920)
+        assert action.name == 'press_home'
+
+    def test_parse_coordinate_normalization(self):
+        """Test that Qwen 0-1000 normalized coordinates are scaled to raw size."""
+        content = """Thought: Click center.
+Action: click(point=[500, 500])"""
+
         raw_size = (1080, 1920)
-        
-        thought, action, action_s, summary = _parse_response(content, size, raw_size)
-        
-        assert action.name == 'type'
-        assert action.parameters['text'] == "Hello"
+        reason, action, action_s = parse_reason_and_action(content, raw_size)
 
-    def test_parse_missing_tool_call_raises(self):
-        """Test that missing tool_call raises exception."""
-        content = "<thinking>Something</thinking>"
-        
-        with pytest.raises(Exception, match="extract action"):
-            _parse_response(content, (100, 100), (100, 100))
-
-
-class TestQwen3ParseResponse:
-    """Tests for Qwen3 agent's _parse_response_qwen3 function."""
-
-    def test_parse_qwen3_format(self):
-        """Test parsing Qwen3 format response."""
-        content = """Thought: I need to click the button.
-Action: Click on the submit button.
-<tool_call>{"name": "macro1", "arguments": {"action": "left_click", "point": [500, 500]}}</tool_call>"""
-        
-        size = (999, 999)  # Qwen3 uses relative coordinates
-        raw_size = (1080, 1920)
-        
-        thought, action, action_s, summary = _parse_response_qwen3(content, size, raw_size)
-        
-        assert thought == "I need to click the button."
         assert action.name == 'click'
-        # Coordinates should be scaled from 999 to raw_size
-        assert action.parameters['coordinate'][0] <= raw_size[0]
-        assert action.parameters['coordinate'][1] <= raw_size[1]
+        # 500/1000 * 1080 = 540, 500/1000 * 1920 = 960
+        assert action.parameters['point'] == (540, 960)
 
+    def test_parse_get_ui_elements_action(self):
+        content = """Thought: The screen is unclear, let me get UI elements.
+Action: get_ui_elements()"""
 
-class TestSlimMessages:
-    """Tests for slim_messages function."""
+        raw_size = (1080, 1920)
+        reason, action, action_s = parse_reason_and_action(content, raw_size)
 
-    def test_slim_messages_keeps_latest(self):
-        """Test that slim_messages keeps only the latest images."""
-        messages = [
-            {"role": "user", "content": [
-                {"type": "text", "text": "Image 1"},
-                {"type": "image_url", "image_url": {"url": "url1"}}
-            ]},
-            {"role": "user", "content": [
-                {"type": "text", "text": "Image 2"},
-                {"type": "image_url", "image_url": {"url": "url2"}}
-            ]},
-            {"role": "user", "content": [
-                {"type": "text", "text": "Image 3"},
-                {"type": "image_url", "image_url": {"url": "url3"}}
-            ]},
-        ]
-        
-        result = slim_messages(messages, num_image_limit=2)
-        
-        # Count images in result
-        image_count = sum(
-            1 for msg in result
-            for content in msg['content']
-            if 'image' in content.get('type', '')
-        )
-        assert image_count == 2
+        assert action.name == 'get_ui_elements'
 
-    def test_slim_messages_preserves_text(self):
-        """Test that slim_messages preserves text content."""
-        messages = [
-            {"role": "user", "content": [
-                {"type": "text", "text": "Hello"},
-                {"type": "image_url", "image_url": {"url": "url1"}}
-            ]},
-        ]
-        
-        result = slim_messages(messages, num_image_limit=0)
-        
-        # Text should be preserved
-        assert any(
-            content.get('text') == "Hello"
-            for msg in result
-            for content in msg['content']
-        )
+    def test_parse_call_user_action(self):
+        content = """Thought: I need help from the user.
+Action: call_user(question='What is the password?')"""
+
+        raw_size = (1080, 1920)
+        reason, action, action_s = parse_reason_and_action(content, raw_size)
+
+        assert action.name == 'call_user'
+        assert action.parameters['question'] == 'What is the password?'
+
+    def test_parse_get_clipboard_action(self):
+        content = """Thought: I just copied the OTP code, let me read it from clipboard.
+Action: get_clipboard()"""
+
+        raw_size = (1080, 1920)
+        reason, action, action_s = parse_reason_and_action(content, raw_size)
+
+        assert action.name == 'get_clipboard'
+
+    def test_parse_open_url_action(self):
+        content = """Thought: I need to open the website.
+Action: open_url(text='https://google.com')"""
+
+        raw_size = (1000, 1000)
+        reason, action, action_s = parse_reason_and_action(content, raw_size)
+
+        assert action.name == 'open_url'
+        assert action.parameters['text'] == 'https://google.com'
+
+    def test_parse_long_press_action(self):
+        content = """Thought: I need to long press to copy text.
+Action: long_press(point=[500, 500])"""
+
+        raw_size = (1080, 1920)
+        reason, action, action_s = parse_reason_and_action(content, raw_size)
+
+        assert action.name == 'long_press'
+
+    def test_parse_clear_text_action(self):
+        content = """Thought: I need to clear the search field.
+Action: clear_text()"""
+
+        raw_size = (1000, 1000)
+        reason, action, action_s = parse_reason_and_action(content, raw_size)
+
+        assert action.name == 'clear_text'
+
+    def test_parse_key_action(self):
+        content = """Thought: I need to press enter to submit.
+Action: key(text='enter')"""
+
+        raw_size = (1000, 1000)
+        reason, action, action_s = parse_reason_and_action(content, raw_size)
+
+        assert action.name == 'key'
+        assert action.parameters['text'] == 'enter'
+
+    def test_parse_press_home_action(self):
+        content = """Thought: I need to go back to the home screen.
+Action: press_home()"""
+
+        raw_size = (1000, 1000)
+        reason, action, action_s = parse_reason_and_action(content, raw_size)
+
+        assert action.name == 'press_home'
+
+    def test_parse_press_back_action(self):
+        content = """Thought: I need to go back.
+Action: press_back()"""
+
+        raw_size = (1000, 1000)
+        reason, action, action_s = parse_reason_and_action(content, raw_size)
+
+        assert action.name == 'press_back'
+
+    def test_parse_wait_action(self):
+        content = """Thought: The page is loading, I should wait.
+Action: wait()"""
+
+        raw_size = (1000, 1000)
+        reason, action, action_s = parse_reason_and_action(content, raw_size)
+
+        assert action.name == 'wait'
+
+    def test_parse_click_by_id_action(self):
+        content = """Thought: I'll click the button by its resource ID.
+Action: click_by_id(text='com.app:id/submit_btn')"""
+
+        raw_size = (1000, 1000)
+        reason, action, action_s = parse_reason_and_action(content, raw_size)
+
+        assert action.name == 'click_by_id'
+        assert action.parameters['text'] == 'com.app:id/submit_btn'
+
+    def test_parse_click_by_description_action(self):
+        content = """Thought: I'll click the search icon by its description.
+Action: click_by_description(text='Search')"""
+
+        raw_size = (1000, 1000)
+        reason, action, action_s = parse_reason_and_action(content, raw_size)
+
+        assert action.name == 'click_by_description'
+        assert action.parameters['text'] == 'Search'
+
+    def test_parse_dump_xml_action(self):
+        content = """Thought: I need the raw XML to understand the UI.
+Action: dump_xml()"""
+
+        raw_size = (1000, 1000)
+        reason, action, action_s = parse_reason_and_action(content, raw_size)
+
+        assert action.name == 'dump_xml'
+
+    def test_parse_open_notification_action(self):
+        content = """Thought: I need to check notifications.
+Action: open_notification()"""
+
+        raw_size = (1000, 1000)
+        reason, action, action_s = parse_reason_and_action(content, raw_size)
+
+        assert action.name == 'open_notification'
+
+    def test_parse_scroll_with_coordinates_action(self):
+        content = """Thought: I need to scroll precisely.
+Action: scroll(start_point=[500, 800], end_point=[500, 200])"""
+
+        raw_size = (1080, 1920)
+        reason, action, action_s = parse_reason_and_action(content, raw_size)
+
+        assert action.name == 'scroll'
+        assert 'start_point' in action.parameters
+        assert 'end_point' in action.parameters
 
 
 # ============================================
@@ -210,23 +277,14 @@ class TestSlimMessages:
 class TestAgentRegistration:
     """Tests for Agent registration mechanism."""
 
-    def test_agent_registered_types(self):
-        """Test that agents are properly registered."""
-        # These should be registered via @Agent.register decorator
-        assert 'ReAct' in Agent.list_available() or Agent.by_name('ReAct') is not None
-        assert 'Qwen' in Agent.list_available() or Agent.by_name('Qwen') is not None
+    def test_react_agent_registered(self):
+        assert Agent.by_name('ReAct') is not None
 
-    def test_create_agent_from_params(self):
-        """Test creating agent from params dict."""
-        with patch('macro1.agents.base.Environment'):
-            with patch('macro1.agents.base.VLMWrapper'):
-                agent = Agent.from_params({
-                    'type': 'ReAct',
-                    'max_steps': 5
-                })
+    def test_single_agent_registered(self):
+        assert Agent.by_name('SingleAgent') is not None
 
-                assert agent is not None
-                assert agent.max_steps == 5
+    def test_react_and_single_agent_are_same(self):
+        assert Agent.by_name('ReAct') is Agent.by_name('SingleAgent')
 
 
 # ============================================
@@ -245,148 +303,62 @@ class TestReActAgent:
                 agent.env = mock_environment
                 agent.vlm = mock_vlm_wrapper
 
-                # Setup VLM response
                 mock_response = MagicMock()
                 mock_response.choices = [MagicMock()]
                 mock_response.choices[0].message.content = """Thought: I need to click the Photos app.
 Action: click(point=[540, 960])"""
+                mock_response.choices[0].message.model_extra = {}
+                mock_response.model_extra = {}
                 mock_vlm_wrapper.predict.return_value = mock_response
 
                 return agent
 
     def test_react_agent_init(self, mock_react_agent):
-        """Test ReActAgent initialization."""
         assert mock_react_agent.max_steps == 3
         assert mock_react_agent.state == AgentState.READY
 
     def test_react_agent_reset(self, mock_react_agent):
-        """Test ReActAgent reset."""
         mock_react_agent.reset(goal="Open Photos", max_steps=5)
-        
+
         assert mock_react_agent.goal == "Open Photos"
         assert mock_react_agent.max_steps == 5
         assert mock_react_agent.curr_step_idx == 0
         assert len(mock_react_agent.trajectory) == 0
 
+    def test_react_agent_reset_initializes_stuck_detection(self, mock_react_agent):
+        mock_react_agent.reset(goal="Test")
+
+        assert hasattr(mock_react_agent, '_recent_actions')
+        assert mock_react_agent._recent_actions == []
+        assert mock_react_agent._max_repeat == 3
+
     def test_react_agent_step(self, mock_react_agent, mock_env_state):
-        """Test ReActAgent step execution."""
         mock_react_agent.reset(goal="Open Photos")
         mock_react_agent.env.get_state.return_value = mock_env_state
-        
+
         step_data = mock_react_agent.step()
-        
+
         assert step_data is not None
         assert step_data.step_idx == 0
-        # VLM should have been called
         mock_react_agent.vlm.predict.assert_called()
 
+    def test_react_agent_step_finished(self, mock_react_agent, mock_env_state):
+        """Test that finished action sets agent status."""
+        mock_react_agent.reset(goal="Test")
+        mock_react_agent.env.get_state.return_value = mock_env_state
 
-# ============================================
-# QwenAgent Tests
-# ============================================
+        mock_response = MagicMock()
+        mock_response.choices = [MagicMock()]
+        mock_response.choices[0].message.content = """Thought: Task is done.
+Action: finished(answer="Done")"""
+        mock_response.choices[0].message.model_extra = {}
+        mock_response.model_extra = {}
+        mock_react_agent.vlm.predict.return_value = mock_response
 
-class TestQwenAgent:
-    """Tests for QwenAgent class."""
+        step_data = mock_react_agent.step()
 
-    @pytest.fixture
-    def mock_qwen_agent(self, mock_environment, mock_vlm_wrapper, mock_env_state):
-        """Create a mocked QwenAgent."""
-        with patch('macro1.agents.agent_qwen.load_prompt') as mock_prompt:
-            mock_prompt_obj = MagicMock()
-            mock_prompt_obj.system_prompt = "System: {width}x{height}"
-            mock_prompt_obj.task_prompt = "Task: {goal}"
-            mock_prompt_obj.history_prompt = "History: {history}"
-            mock_prompt_obj.thinking_prompt = "Think step by step."
-            mock_prompt.return_value = mock_prompt_obj
-            
-            with patch('macro1.agents.base.Environment', return_value=mock_environment):
-                with patch('macro1.agents.base.VLMWrapper', return_value=mock_vlm_wrapper):
-                    agent = QwenAgent(max_steps=3)
-                    agent.env = mock_environment
-                    agent.vlm = mock_vlm_wrapper
-                    
-                    # Setup VLM response
-                    mock_response = MagicMock()
-                    mock_response.choices = [MagicMock()]
-                    mock_response.choices[0].message.content = """<thinking>I need to click.</thinking>
-<tool_call>{"name": "macro1", "arguments": {"action": "left_click", "point": [540, 960]}}</tool_call>
-<conclusion>Clicking.</conclusion>"""
-                    mock_vlm_wrapper.predict.return_value = mock_response
-                    
-                    return agent
-
-    def test_qwen_agent_init(self, mock_qwen_agent):
-        """Test QwenAgent initialization."""
-        assert mock_qwen_agent.max_steps == 3
-        assert mock_qwen_agent.enable_think is True
-
-    def test_qwen_agent_reset(self, mock_qwen_agent):
-        """Test QwenAgent reset."""
-        mock_qwen_agent.reset(goal="Test task", max_steps=10)
-        
-        assert mock_qwen_agent.goal == "Test task"
-        assert mock_qwen_agent.max_steps == 10
-
-    def test_qwen_agent_config_options(self):
-        """Test QwenAgent configuration options."""
-        with patch('macro1.agents.agent_qwen.load_prompt') as mock_prompt:
-            mock_prompt.return_value = MagicMock()
-            with patch('macro1.agents.base.Environment'):
-                with patch('macro1.agents.base.VLMWrapper'):
-                    agent = QwenAgent(
-                        enable_think=False,
-                        message_type='chat',
-                        coordinate_type='relative',
-                        num_image_limit=5
-                    )
-                    
-                    assert agent.enable_think is False
-                    assert agent.message_type == 'chat'
-                    assert agent.coordinate_type == 'relative'
-                    assert agent.num_image_limit == 5
-
-
-# ============================================
-# MultiAgent Tests
-# ============================================
-
-class TestMultiAgent:
-    """Tests for MultiAgent class."""
-
-    @pytest.fixture
-    def mock_multi_agent(self, mock_environment, mock_vlm_wrapper):
-        """Create a mocked MultiAgent."""
-        with patch('macro1.agents.multi_agent.Planner'):
-            with patch('macro1.agents.multi_agent.Operator') as MockOperator:
-                with patch('macro1.agents.multi_agent.Reflector'):
-                    with patch('macro1.agents.base.Environment', return_value=mock_environment):
-                        with patch('macro1.agents.base.VLMWrapper', return_value=mock_vlm_wrapper):
-                            from macro1.schema.config import MultiAgentConfig, OperatorConfig
-                            
-                            # Create minimal config
-                            agent = MultiAgent(max_steps=3)
-                            agent.env = mock_environment
-                            agent.vlm = mock_vlm_wrapper
-                            
-                            return agent
-
-    def test_multi_agent_init(self, mock_multi_agent):
-        """Test MultiAgent initialization."""
-        assert mock_multi_agent.max_steps == 3
-
-    def test_multi_agent_reset(self, mock_multi_agent):
-        """Test MultiAgent reset."""
-        mock_multi_agent.reset(goal="Complex task", max_steps=20)
-        
-        assert mock_multi_agent.goal == "Complex task"
-        assert mock_multi_agent.max_steps == 20
-        assert len(mock_multi_agent.trajectory) == 0
-
-    def test_multi_agent_episode_data_type(self, mock_multi_agent):
-        """Test that MultiAgent uses Macro1EpisodeData."""
-        mock_multi_agent.reset(goal="Test")
-        
-        assert isinstance(mock_multi_agent.episode_data, Macro1EpisodeData)
+        assert mock_react_agent.status == AgentStatus.FINISHED
+        assert step_data.answer == "Done"
 
 
 # ============================================
@@ -397,22 +369,18 @@ class TestAgentStateManagement:
     """Tests for agent state management."""
 
     def test_agent_state_transitions(self, mock_environment, mock_vlm_wrapper):
-        """Test agent state transitions."""
         with patch('macro1.agents.base.Environment', return_value=mock_environment):
             with patch('macro1.agents.base.VLMWrapper', return_value=mock_vlm_wrapper):
                 agent = ReActAgent(max_steps=5)
                 agent.env = mock_environment
                 agent.vlm = mock_vlm_wrapper
 
-                # Initial state
                 assert agent.state == AgentState.READY
 
-                # After reset
                 agent.reset(goal="Test")
                 assert agent.state == AgentState.READY
 
     def test_set_max_steps(self, mock_environment, mock_vlm_wrapper):
-        """Test setting max steps."""
         with patch('macro1.agents.base.Environment', return_value=mock_environment):
             with patch('macro1.agents.base.VLMWrapper', return_value=mock_vlm_wrapper):
                 agent = ReActAgent(max_steps=5)
@@ -426,22 +394,18 @@ class TestAgentStateManagement:
 # ============================================
 
 class TestAgentIntegration:
-    """Integration tests for agents that require real VLM and device.
-    
-    These tests are skipped if credentials/device are not available.
-    """
+    """Integration tests that require real VLM and device."""
 
     @pytest.fixture
     def real_react_agent(self):
-        """Create a ReActAgent with real credentials."""
         import os
-        
+
         api_key = os.getenv('VLM_API_KEY')
         base_url = os.getenv('VLM_BASE_URL')
-        
+
         if not api_key or not base_url:
             pytest.skip("VLM credentials not available")
-        
+
         try:
             import adbutils
             adb = adbutils.AdbClient(host="127.0.0.1", port=5037)
@@ -451,11 +415,11 @@ class TestAgentIntegration:
             serial_no = devices[0].serial
         except Exception:
             pytest.skip("Cannot connect to ADB")
-        
+
         from macro1.schema.config import VLMConfig, MobileEnvConfig
-        
+
         vlm_config = VLMConfig(
-            model_name='qwen2.5-vl-72b-instruct',
+            model_name='qwen/qwen3.5-397b-a17b',
             api_key=api_key,
             base_url=base_url,
             max_tokens=512
@@ -465,7 +429,7 @@ class TestAgentIntegration:
             go_home=False,
             wait_after_action_seconds=1.0
         )
-        
+
         return ReActAgent(
             vlm=vlm_config,
             env=env_config,
@@ -474,64 +438,10 @@ class TestAgentIntegration:
 
     @pytest.mark.integration
     def test_react_agent_single_step(self, real_react_agent):
-        """Test ReActAgent executing a single step."""
         real_react_agent.reset(goal="Describe what you see on the screen")
-        
+
         step_data = real_react_agent.step()
-        
+
         assert step_data is not None
         assert step_data.curr_env_state is not None
         assert step_data.curr_env_state.pixels is not None
-
-    @pytest.fixture
-    def real_qwen_agent(self):
-        """Create a QwenAgent with real credentials."""
-        import os
-        
-        api_key = os.getenv('VLM_API_KEY')
-        base_url = os.getenv('VLM_BASE_URL')
-        
-        if not api_key or not base_url:
-            pytest.skip("VLM credentials not available")
-        
-        try:
-            import adbutils
-            adb = adbutils.AdbClient(host="127.0.0.1", port=5037)
-            devices = adb.device_list()
-            if not devices:
-                pytest.skip("No ADB device connected")
-            serial_no = devices[0].serial
-        except Exception:
-            pytest.skip("Cannot connect to ADB")
-        
-        from macro1.schema.config import VLMConfig, MobileEnvConfig
-        
-        vlm_config = VLMConfig(
-            model_name='qwen2.5-vl-72b-instruct',
-            api_key=api_key,
-            base_url=base_url,
-            max_tokens=512
-        )
-        env_config = MobileEnvConfig(
-            serial_no=serial_no,
-            go_home=False,
-            wait_after_action_seconds=1.0
-        )
-        
-        return QwenAgent(
-            vlm=vlm_config,
-            env=env_config,
-            max_steps=1,
-            enable_think=True
-        )
-
-    @pytest.mark.integration
-    def test_qwen_agent_single_step(self, real_qwen_agent):
-        """Test QwenAgent executing a single step."""
-        real_qwen_agent.reset(goal="Open the Photos app")
-        
-        step_data = real_qwen_agent.step()
-        
-        assert step_data is not None
-        assert step_data.curr_env_state is not None
-

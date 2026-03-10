@@ -2,6 +2,8 @@
 
 import json
 import logging
+import os
+import re
 import time
 import traceback
 import xml.etree.ElementTree as ET
@@ -26,6 +28,9 @@ APP_PACKAGES = {
 }
 
 SELECTOR_TIMEOUT = 5
+
+HYPERCLIPPER_PKG = "id.intiva.hyperclipper"
+HYPERCLIPPER_APK = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "apks", "hyperclipper.apk")
 
 
 class Environment:
@@ -79,6 +84,42 @@ class Environment:
         if not callable(action_func):
             raise ValueError(f"Action function for {action_name} must be callable.")
         self._register_function[action_name] = action_func
+
+    # ── Hyperclipper (clipboard access) ──────────────────────────────────────
+
+    def _ensure_hyperclipper(self):
+        """Install and start hyperclipper if not already running."""
+        pid = self._d.shell(f"pidof {HYPERCLIPPER_PKG}").strip()
+        if pid:
+            return
+        # Check if installed
+        installed = self._d.shell(f"pm path {HYPERCLIPPER_PKG}").strip()
+        if not installed:
+            if os.path.exists(HYPERCLIPPER_APK):
+                logger.info(f"Installing hyperclipper from {HYPERCLIPPER_APK}")
+                self._d.install(HYPERCLIPPER_APK)
+            else:
+                raise FileNotFoundError(
+                    f"Hyperclipper APK not found at {HYPERCLIPPER_APK}. "
+                    f"Place hyperclipper.apk in the apks/ directory."
+                )
+        # Start the activity so the broadcast receiver is active
+        self._d.shell(f"am start -n {HYPERCLIPPER_PKG}/.MainActivity")
+        time.sleep(1)
+        # Send it to background so it doesn't block the foreground app
+        self._d.shell("input keyevent KEYCODE_HOME")
+        time.sleep(0.5)
+        logger.info("Hyperclipper started")
+
+    def _get_clipboard(self) -> str:
+        """Read clipboard text via hyperclipper broadcast."""
+        self._ensure_hyperclipper()
+        output = self._d.shell("am broadcast -a clipper.get")
+        match = re.search(r'data="(.*)"', output)
+        if match:
+            return match.group(1)
+        logger.warning(f"Could not parse clipboard from: {output}")
+        return ""
 
     # ── Accessibility tree (android-action-kernel pattern) ───────────────────
 
@@ -198,20 +239,13 @@ class Environment:
                 try:
                     self._u2.clear_text()
                 except Exception:
-                    # Fallback: select all + delete
-                    self._u2.keyevent("KEYCODE_MOVE_HOME")
-                    self._u2.keyevent("KEYCODE_MOVE_END", metastate=1)  # shift+end
-                    self._u2.keyevent("KEYCODE_DEL")
+                    # Fallback: Ctrl+A then delete
+                    self._d.shell("input keyevent --longpress 29 54")  # Ctrl+A (select all)
+                    self._d.shell("input keyevent 67")  # DEL
 
             case "key":
                 key = action.parameters["text"]
                 self._u2.press(key.lower())
-
-            case "input_emoticon":
-                text = action.parameters["text"]
-                # Use u2 clipboard to paste emoji
-                self._u2.set_clipboard(text)
-                self._u2.keyevent("PASTE")
 
             # -- Navigation --
 
@@ -271,14 +305,10 @@ class Environment:
             case "dump_xml":
                 result = self._u2.dump_hierarchy()
 
-            # -- Device control --
+            case "get_clipboard":
+                result = self._get_clipboard()
 
-            case "airplane_mode":
-                state = action.parameters["text"]
-                if state == "on":
-                    self._d.shell(["cmd", "connectivity", "airplane-mode", "enable"])
-                elif state == "off":
-                    self._d.shell(["cmd", "connectivity", "airplane-mode", "disable"])
+            # -- Device control --
 
             case "open_notification":
                 self._u2.open_notification()
