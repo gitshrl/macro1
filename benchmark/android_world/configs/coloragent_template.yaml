@@ -15,7 +15,7 @@ operator:
   name: OperatorQwen
   prompt_config: operator_qwen.yaml
   # # To enable knowledge retrieval, enable the following config.
-  # # See mobile_use/utils/rag/README.md for more details.
+  # # See macro1/utils/rag/README.md for more details.
   # knowledge: 
   #   embedding_model_path: <path-to-embedding-model>
   #   knowledge_database_dir: <path-to-explored-knowledge-database>
@@ -25,7 +25,7 @@ answer_agent:
   name: AnswerAgentQwen
   prompt_config: answer_agent_qwen.yaml
   # # To enable knowledge retrieval, enable the following config.
-  # # See mobile_use/utils/rag/README.md for more details.
+  # # See macro1/utils/rag/README.md for more details.
   # knowledge: 
   #   embedding_model_path: <path-to-embedding-model>
   #   knowledge_database_dir: <path-to-explored-knowledge-database>

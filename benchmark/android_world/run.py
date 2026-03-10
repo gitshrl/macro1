@@ -40,8 +40,8 @@ from android_world.agents import base_agent
 from android_world.env import env_launcher
 from android_world.env import interface
 
-import mobile_use
-import mobile_use_agent
+import macro1
+import macro1_agent
 
 logging.set_verbosity(logging.WARNING)
 
@@ -134,11 +134,11 @@ _OUTPUT_PATH = flags.DEFINE_string(
 )
 
 # Agent specific.
-_AGENT_NAME = flags.DEFINE_string('agent_name', 'mobile_use', help='Agent name.')
+_AGENT_NAME = flags.DEFINE_string('agent_name', 'macro1', help='Agent name.')
 
-_MOBILEUSE_AGENT_NAME = flags.DEFINE_string('mobileuse_agent_name', 'MultiAgent', help='Mobileuse agent name.')
+_MACRO1_AGENT_NAME = flags.DEFINE_string('macro1_agent_name', 'MultiAgent', help='Macro1 agent name.')
 
-_MOBILEUSE_CONFIG_PATH = flags.DEFINE_string('mobileuse_config_path', None, help='Path to MobileUse agent config file.')
+_MACRO1_CONFIG_PATH = flags.DEFINE_string('macro1_config_path', None, help='Path to Macro1 agent config file.')
 
 _FIXED_TASK_SEED = flags.DEFINE_boolean(
     'fixed_task_seed',
@@ -157,16 +157,16 @@ def _get_agent(env: interface.AsyncEnv, family: str | None = None) -> base_agent
   print('Initializing agent...')
   agent = None
  
-  if _AGENT_NAME.value == 'mobile_use':
+  if _AGENT_NAME.value == 'macro1':
     # Modify the parameters if needed.
-    agent = mobile_use.Agent.from_params(dict(
-      type=_MOBILEUSE_AGENT_NAME.value,
-      config_path=_MOBILEUSE_CONFIG_PATH.value,
+    agent = macro1.Agent.from_params(dict(
+      type=_MACRO1_AGENT_NAME.value,
+      config_path=_MACRO1_CONFIG_PATH.value,
     ))
     if hasattr(agent.config, 'operator') and agent.config.operator and agent.config.operator.include_a11y_tree:
-      print("Lode MobileUseEnvironment to get a11y tree.")
-      import mobile_use_environment
-      new_env = mobile_use_environment.MobileUseEnvironment(
+      print("Lode Macro1Environment to get a11y tree.")
+      import macro1_environment
+      new_env = macro1_environment.Macro1Environment(
         serial_no=agent.env.serial_no,
         host=agent.env.host,
         port=agent.env.port,
@@ -179,7 +179,7 @@ def _get_agent(env: interface.AsyncEnv, family: str | None = None) -> base_agent
       adb_utils.launch_app(kwargs['text'], self._d)
       
     agent.env.register_action("open", open_androidworld_app)
-    agent = mobile_use_agent.MobileUse(env, agent)
+    agent = macro1_agent.Macro1(env, agent)
 
   if not agent:
     raise ValueError(f'Unknown agent: {_AGENT_NAME.value}')

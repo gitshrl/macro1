@@ -1,5 +1,5 @@
 """
-Tests for mobile_use/agents/
+Tests for macro1/agents/
 
 Tests the Agent base class and various agent implementations including
 ReActAgent, QwenAgent, MultiAgent, and HierarchicalAgent.
@@ -10,14 +10,14 @@ from unittest.mock import Mock, patch, MagicMock
 from PIL import Image
 import json
 
-from mobile_use.agents.base import Agent
-from mobile_use.agents.agent_react import ReActAgent, parse_reason_and_action
-from mobile_use.agents.agent_qwen import QwenAgent, _parse_response, _parse_response_qwen3, slim_messages
-from mobile_use.agents.multi_agent import MultiAgent
-from mobile_use.schema.schema import (
+from macro1.agents.base import Agent
+from macro1.agents.agent_react import ReActAgent, parse_reason_and_action
+from macro1.agents.agent_qwen import QwenAgent, _parse_response, _parse_response_qwen3, slim_messages
+from macro1.agents.multi_agent import MultiAgent
+from macro1.schema.schema import (
     Action, EnvState, AgentState, AgentStatus,
-    BaseStepData, SingleAgentStepData, MobileUseStepData,
-    BaseEpisodeData, MobileUseEpisodeData
+    BaseStepData, SingleAgentStepData, Macro1StepData,
+    BaseEpisodeData, Macro1EpisodeData
 )
 
 
@@ -84,7 +84,7 @@ class TestQwenParseResponse:
     def test_parse_click_response(self):
         """Test parsing Qwen click response."""
         content = """<thinking>I need to click on the button.</thinking>
-<tool_call>{"name": "mobile_use", "arguments": {"action": "left_click", "point": [540, 960]}}</tool_call>
+<tool_call>{"name": "macro1", "arguments": {"action": "left_click", "point": [540, 960]}}</tool_call>
 <conclusion>Clicking the button.</conclusion>"""
         
         size = (1080, 1920)
@@ -99,7 +99,7 @@ class TestQwenParseResponse:
     def test_parse_swipe_response(self):
         """Test parsing Qwen swipe response."""
         content = """<thinking>Need to scroll down.</thinking>
-<tool_call>{"name": "mobile_use", "arguments": {"action": "swipe", "start_point": [540, 1500], "end_point": [540, 500]}}</tool_call>
+<tool_call>{"name": "macro1", "arguments": {"action": "swipe", "start_point": [540, 1500], "end_point": [540, 500]}}</tool_call>
 <conclusion>Scrolling down.</conclusion>"""
         
         size = (1080, 1920)
@@ -114,7 +114,7 @@ class TestQwenParseResponse:
     def test_parse_type_response(self):
         """Test parsing Qwen type response."""
         content = """<thinking>Enter the text.</thinking>
-<tool_call>{"name": "mobile_use", "arguments": {"action": "type", "content": "Hello"}}</tool_call>
+<tool_call>{"name": "macro1", "arguments": {"action": "type", "content": "Hello"}}</tool_call>
 <conclusion>Typing Hello.</conclusion>"""
         
         size = (1080, 1920)
@@ -140,7 +140,7 @@ class TestQwen3ParseResponse:
         """Test parsing Qwen3 format response."""
         content = """Thought: I need to click the button.
 Action: Click on the submit button.
-<tool_call>{"name": "mobile_use", "arguments": {"action": "left_click", "point": [500, 500]}}</tool_call>"""
+<tool_call>{"name": "macro1", "arguments": {"action": "left_click", "point": [500, 500]}}</tool_call>"""
         
         size = (999, 999)  # Qwen3 uses relative coordinates
         raw_size = (1080, 1920)
@@ -218,18 +218,15 @@ class TestAgentRegistration:
 
     def test_create_agent_from_params(self):
         """Test creating agent from params dict."""
-        with patch('mobile_use.agents.base.Environment'):
-            with patch('mobile_use.agents.base.VLMWrapper'):
-                with patch('mobile_use.agents.agent_react.load_prompt') as mock_prompt:
-                    mock_prompt.return_value = MagicMock()
-                    
-                    agent = Agent.from_params({
-                        'type': 'ReAct',
-                        'max_steps': 5
-                    })
-                    
-                    assert agent is not None
-                    assert agent.max_steps == 5
+        with patch('macro1.agents.base.Environment'):
+            with patch('macro1.agents.base.VLMWrapper'):
+                agent = Agent.from_params({
+                    'type': 'ReAct',
+                    'max_steps': 5
+                })
+
+                assert agent is not None
+                assert agent.max_steps == 5
 
 
 # ============================================
@@ -242,27 +239,20 @@ class TestReActAgent:
     @pytest.fixture
     def mock_react_agent(self, mock_environment, mock_vlm_wrapper, mock_env_state):
         """Create a mocked ReActAgent."""
-        with patch('mobile_use.agents.agent_react.load_prompt') as mock_prompt:
-            mock_prompt_obj = MagicMock()
-            mock_prompt_obj.system_prompt_en = "You are an assistant."
-            mock_prompt_obj.system_prompt_zh = "你是一个助手。"
-            mock_prompt_obj.task_prompt = "Complete: {goal}"
-            mock_prompt.return_value = mock_prompt_obj
-            
-            with patch('mobile_use.agents.base.Environment', return_value=mock_environment):
-                with patch('mobile_use.agents.base.VLMWrapper', return_value=mock_vlm_wrapper):
-                    agent = ReActAgent(max_steps=3)
-                    agent.env = mock_environment
-                    agent.vlm = mock_vlm_wrapper
-                    
-                    # Setup VLM response
-                    mock_response = MagicMock()
-                    mock_response.choices = [MagicMock()]
-                    mock_response.choices[0].message.content = """Thought: I need to click the Photos app.
+        with patch('macro1.agents.base.Environment', return_value=mock_environment):
+            with patch('macro1.agents.base.VLMWrapper', return_value=mock_vlm_wrapper):
+                agent = ReActAgent(max_steps=3)
+                agent.env = mock_environment
+                agent.vlm = mock_vlm_wrapper
+
+                # Setup VLM response
+                mock_response = MagicMock()
+                mock_response.choices = [MagicMock()]
+                mock_response.choices[0].message.content = """Thought: I need to click the Photos app.
 Action: click(point=[540, 960])"""
-                    mock_vlm_wrapper.predict.return_value = mock_response
-                    
-                    return agent
+                mock_vlm_wrapper.predict.return_value = mock_response
+
+                return agent
 
     def test_react_agent_init(self, mock_react_agent):
         """Test ReActAgent initialization."""
@@ -301,7 +291,7 @@ class TestQwenAgent:
     @pytest.fixture
     def mock_qwen_agent(self, mock_environment, mock_vlm_wrapper, mock_env_state):
         """Create a mocked QwenAgent."""
-        with patch('mobile_use.agents.agent_qwen.load_prompt') as mock_prompt:
+        with patch('macro1.agents.agent_qwen.load_prompt') as mock_prompt:
             mock_prompt_obj = MagicMock()
             mock_prompt_obj.system_prompt = "System: {width}x{height}"
             mock_prompt_obj.task_prompt = "Task: {goal}"
@@ -309,8 +299,8 @@ class TestQwenAgent:
             mock_prompt_obj.thinking_prompt = "Think step by step."
             mock_prompt.return_value = mock_prompt_obj
             
-            with patch('mobile_use.agents.base.Environment', return_value=mock_environment):
-                with patch('mobile_use.agents.base.VLMWrapper', return_value=mock_vlm_wrapper):
+            with patch('macro1.agents.base.Environment', return_value=mock_environment):
+                with patch('macro1.agents.base.VLMWrapper', return_value=mock_vlm_wrapper):
                     agent = QwenAgent(max_steps=3)
                     agent.env = mock_environment
                     agent.vlm = mock_vlm_wrapper
@@ -319,7 +309,7 @@ class TestQwenAgent:
                     mock_response = MagicMock()
                     mock_response.choices = [MagicMock()]
                     mock_response.choices[0].message.content = """<thinking>I need to click.</thinking>
-<tool_call>{"name": "mobile_use", "arguments": {"action": "left_click", "point": [540, 960]}}</tool_call>
+<tool_call>{"name": "macro1", "arguments": {"action": "left_click", "point": [540, 960]}}</tool_call>
 <conclusion>Clicking.</conclusion>"""
                     mock_vlm_wrapper.predict.return_value = mock_response
                     
@@ -339,10 +329,10 @@ class TestQwenAgent:
 
     def test_qwen_agent_config_options(self):
         """Test QwenAgent configuration options."""
-        with patch('mobile_use.agents.agent_qwen.load_prompt') as mock_prompt:
+        with patch('macro1.agents.agent_qwen.load_prompt') as mock_prompt:
             mock_prompt.return_value = MagicMock()
-            with patch('mobile_use.agents.base.Environment'):
-                with patch('mobile_use.agents.base.VLMWrapper'):
+            with patch('macro1.agents.base.Environment'):
+                with patch('macro1.agents.base.VLMWrapper'):
                     agent = QwenAgent(
                         enable_think=False,
                         message_type='chat',
@@ -366,12 +356,12 @@ class TestMultiAgent:
     @pytest.fixture
     def mock_multi_agent(self, mock_environment, mock_vlm_wrapper):
         """Create a mocked MultiAgent."""
-        with patch('mobile_use.agents.multi_agent.Planner'):
-            with patch('mobile_use.agents.multi_agent.Operator') as MockOperator:
-                with patch('mobile_use.agents.multi_agent.Reflector'):
-                    with patch('mobile_use.agents.base.Environment', return_value=mock_environment):
-                        with patch('mobile_use.agents.base.VLMWrapper', return_value=mock_vlm_wrapper):
-                            from mobile_use.schema.config import MultiAgentConfig, OperatorConfig
+        with patch('macro1.agents.multi_agent.Planner'):
+            with patch('macro1.agents.multi_agent.Operator') as MockOperator:
+                with patch('macro1.agents.multi_agent.Reflector'):
+                    with patch('macro1.agents.base.Environment', return_value=mock_environment):
+                        with patch('macro1.agents.base.VLMWrapper', return_value=mock_vlm_wrapper):
+                            from macro1.schema.config import MultiAgentConfig, OperatorConfig
                             
                             # Create minimal config
                             agent = MultiAgent(max_steps=3)
@@ -393,10 +383,10 @@ class TestMultiAgent:
         assert len(mock_multi_agent.trajectory) == 0
 
     def test_multi_agent_episode_data_type(self, mock_multi_agent):
-        """Test that MultiAgent uses MobileUseEpisodeData."""
+        """Test that MultiAgent uses Macro1EpisodeData."""
         mock_multi_agent.reset(goal="Test")
         
-        assert isinstance(mock_multi_agent.episode_data, MobileUseEpisodeData)
+        assert isinstance(mock_multi_agent.episode_data, Macro1EpisodeData)
 
 
 # ============================================
@@ -408,31 +398,27 @@ class TestAgentStateManagement:
 
     def test_agent_state_transitions(self, mock_environment, mock_vlm_wrapper):
         """Test agent state transitions."""
-        with patch('mobile_use.agents.agent_react.load_prompt') as mock_prompt:
-            mock_prompt.return_value = MagicMock()
-            with patch('mobile_use.agents.base.Environment', return_value=mock_environment):
-                with patch('mobile_use.agents.base.VLMWrapper', return_value=mock_vlm_wrapper):
-                    agent = ReActAgent(max_steps=5)
-                    agent.env = mock_environment
-                    agent.vlm = mock_vlm_wrapper
-                    
-                    # Initial state
-                    assert agent.state == AgentState.READY
-                    
-                    # After reset
-                    agent.reset(goal="Test")
-                    assert agent.state == AgentState.READY
+        with patch('macro1.agents.base.Environment', return_value=mock_environment):
+            with patch('macro1.agents.base.VLMWrapper', return_value=mock_vlm_wrapper):
+                agent = ReActAgent(max_steps=5)
+                agent.env = mock_environment
+                agent.vlm = mock_vlm_wrapper
+
+                # Initial state
+                assert agent.state == AgentState.READY
+
+                # After reset
+                agent.reset(goal="Test")
+                assert agent.state == AgentState.READY
 
     def test_set_max_steps(self, mock_environment, mock_vlm_wrapper):
         """Test setting max steps."""
-        with patch('mobile_use.agents.agent_react.load_prompt') as mock_prompt:
-            mock_prompt.return_value = MagicMock()
-            with patch('mobile_use.agents.base.Environment', return_value=mock_environment):
-                with patch('mobile_use.agents.base.VLMWrapper', return_value=mock_vlm_wrapper):
-                    agent = ReActAgent(max_steps=5)
-                    agent.set_max_steps(10)
-                    
-                    assert agent.max_steps == 10
+        with patch('macro1.agents.base.Environment', return_value=mock_environment):
+            with patch('macro1.agents.base.VLMWrapper', return_value=mock_vlm_wrapper):
+                agent = ReActAgent(max_steps=5)
+                agent.set_max_steps(10)
+
+                assert agent.max_steps == 10
 
 
 # ============================================
@@ -466,7 +452,7 @@ class TestAgentIntegration:
         except Exception:
             pytest.skip("Cannot connect to ADB")
         
-        from mobile_use.schema.config import VLMConfig, MobileEnvConfig
+        from macro1.schema.config import VLMConfig, MobileEnvConfig
         
         vlm_config = VLMConfig(
             model_name='qwen2.5-vl-72b-instruct',
@@ -518,7 +504,7 @@ class TestAgentIntegration:
         except Exception:
             pytest.skip("Cannot connect to ADB")
         
-        from mobile_use.schema.config import VLMConfig, MobileEnvConfig
+        from macro1.schema.config import VLMConfig, MobileEnvConfig
         
         vlm_config = VLMConfig(
             model_name='qwen2.5-vl-72b-instruct',

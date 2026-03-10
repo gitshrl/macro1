@@ -1,7 +1,7 @@
 """
-Mobile Use Test Suite
+Macro1 Test Suite
 
-This test suite provides comprehensive testing for the mobile-use framework.
+This test suite provides comprehensive testing for the macro1 framework.
 
 Test Structure:
 - test_schema.py: Tests for data schemas (EnvState, Action, StepData, etc.)

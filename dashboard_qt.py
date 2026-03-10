@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Macro-AI Desktop — run mobile-use tasks on multiple emulators"""
+"""Macro-AI Desktop — run macro1 tasks on multiple emulators"""
 
 import sys
 import os
@@ -49,8 +49,8 @@ class TaskWorker(QThread):
     def run(self):
         self.log_signal.emit(f"🔄 [{self.label}] Starting...\n")
         cmd = [
-            os.path.expanduser("~/mobile-use/venv/bin/python"),
-            os.path.expanduser("~/mobile-use/run_task.py"),
+            os.path.expanduser("~/macro1/venv/bin/python"),
+            os.path.expanduser("~/macro1/run_task.py"),
             self.prompt,
             "--device", self.serial,
             "--model", self.model,
@@ -62,7 +62,7 @@ class TaskWorker(QThread):
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
                 text=True,
-                cwd=os.path.expanduser("~/mobile-use"),
+                cwd=os.path.expanduser("~/macro1"),
             )
             running_procs[self.serial] = proc
             output = []

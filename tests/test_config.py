@@ -1,5 +1,5 @@
 """
-Tests for mobile_use/schema/config.py
+Tests for macro1/schema/config.py
 
 Tests the configuration classes including BaseConfig, VLMConfig,
 MobileEnvConfig, AgentConfig and various sub-agent configs.
@@ -10,7 +10,7 @@ import yaml
 import tempfile
 import os
 
-from mobile_use.schema.config import (
+from macro1.schema.config import (
     BaseConfig,
     MobileEnvConfig,
     VLMConfig,

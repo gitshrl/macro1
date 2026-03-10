@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-"""mobile-use CLI — run a task on an Android emulator"""
+"""macro1 CLI — run a task on an Android emulator"""
 
 import argparse
 import logging
 import sys
-from mobile_use import Environment, VLMWrapper, Agent
+from macro1 import Environment, VLMWrapper, Agent
 
 logging.basicConfig(
     level=logging.INFO,
@@ -17,7 +17,7 @@ OPENROUTER_KEY = 'sk-or-v1-bfcc1eab189eae8cfaab9c6532ef44c6b6fadf2c8967a2b00a9bd
 OPENROUTER_URL = 'https://openrouter.ai/api/v1'
 
 def main():
-    parser = argparse.ArgumentParser(description='Run mobile-use task on Android emulator')
+    parser = argparse.ArgumentParser(description='Run macro1 task on Android emulator')
     parser.add_argument('task', help='Task to execute, e.g. "Open YouTube and search for cats"')
     parser.add_argument('--device', '-d', default='emulator-5554',
                         help='ADB device serial (default: emulator-5554)')

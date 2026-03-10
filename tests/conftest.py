@@ -91,7 +91,7 @@ def mock_vlm_wrapper() -> Mock:
     mock_response.choices = [Mock()]
     mock_response.choices[0].message = Mock()
     mock_response.choices[0].message.content = """<thinking>I need to click on the Photos app.</thinking>
-<tool_call>{"name": "mobile_use", "arguments": {"action": "click", "point": [540, 960]}}</tool_call>
+<tool_call>{"name": "macro1", "arguments": {"action": "click", "point": [540, 960]}}</tool_call>
 <conclusion>Clicking on Photos app icon.</conclusion>"""
     vlm.predict = Mock(return_value=mock_response)
     
@@ -101,7 +101,7 @@ def mock_vlm_wrapper() -> Mock:
 @pytest.fixture
 def mock_env_state(mock_image) -> 'EnvState':
     """Create a mock EnvState for testing."""
-    from mobile_use.schema.schema import EnvState
+    from macro1.schema.schema import EnvState
     return EnvState(
         pixels=mock_image,
         package="com.example.app",
@@ -118,9 +118,14 @@ def mock_environment(mock_env_state) -> Mock:
     env.port = 5037
     env.serial_no = "emulator-5554"
     env.window_size = (1080, 1920)
-    env._action_space = ['open', 'click', 'long_press', 'type', 'key',
-                         'swipe', 'press_home', 'press_back', 'wait',
-                         'answer', 'system_button', 'clear_text', 'take_note']
+    env._action_space = [
+        'open', 'click', 'long_press', 'type', 'key',
+        'swipe', 'press_home', 'press_back', 'wait',
+        'answer', 'system_button', 'clear_text', 'take_note',
+        'open_url', 'push_file', 'install_apk', 'airplane_mode',
+        'input_emoticon', 'click_by_text', 'click_by_id',
+        'click_by_description', 'dump_xml', 'get_clipboard',
+    ]
     
     # Mock methods
     env.get_state = Mock(return_value=mock_env_state)
@@ -137,7 +142,7 @@ def mock_environment(mock_env_state) -> Mock:
 @pytest.fixture
 def sample_action() -> 'Action':
     """Create a sample Action for testing."""
-    from mobile_use.schema.schema import Action
+    from macro1.schema.schema import Action
     return Action(name='click', parameters={'coordinate': [540, 960]})
 
 

@@ -1,1 +1,0 @@
-from mobile_use.default_prompts.prompt_type import load_prompt

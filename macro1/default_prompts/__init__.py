@@ -1,0 +1,1 @@
+from macro1.default_prompts.prompt_type import load_prompt

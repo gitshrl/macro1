@@ -1,1 +1,0 @@
-from mobile_use.schema.schema import *

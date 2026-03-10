@@ -1,5 +1,5 @@
 """
-Tests for mobile_use/utils/vlm.py
+Tests for macro1/utils/vlm.py
 
 Tests the VLMWrapper class for interacting with Vision Language Models.
 Includes both unit tests with mocks and integration tests that require API credentials.
@@ -9,7 +9,7 @@ import pytest
 from unittest.mock import Mock, patch, MagicMock
 import time
 
-from mobile_use.utils.vlm import VLMWrapper
+from macro1.utils.vlm import VLMWrapper
 
 
 class TestVLMWrapperInit:
@@ -17,7 +17,7 @@ class TestVLMWrapperInit:
 
     def test_init_with_required_params(self):
         """Test VLMWrapper initialization with required parameters."""
-        with patch('mobile_use.utils.vlm.OpenAI') as mock_openai:
+        with patch('macro1.utils.vlm.OpenAI') as mock_openai:
             vlm = VLMWrapper(
                 model_name="test-model",
                 api_key="test-key",
@@ -30,7 +30,7 @@ class TestVLMWrapperInit:
 
     def test_init_with_custom_params(self):
         """Test VLMWrapper initialization with custom parameters."""
-        with patch('mobile_use.utils.vlm.OpenAI') as mock_openai:
+        with patch('macro1.utils.vlm.OpenAI') as mock_openai:
             vlm = VLMWrapper(
                 model_name="custom-model",
                 api_key="key",
@@ -47,7 +47,7 @@ class TestVLMWrapperInit:
 
     def test_init_with_extra_kwargs(self):
         """Test VLMWrapper initialization with extra VLM kwargs."""
-        with patch('mobile_use.utils.vlm.OpenAI'):
+        with patch('macro1.utils.vlm.OpenAI'):
             vlm = VLMWrapper(
                 model_name="model",
                 api_key="key",
@@ -63,7 +63,7 @@ class TestVLMWrapperPredict:
 
     def test_predict_success(self):
         """Test successful prediction."""
-        with patch('mobile_use.utils.vlm.OpenAI') as mock_openai:
+        with patch('macro1.utils.vlm.OpenAI') as mock_openai:
             # Setup mock
             mock_client = MagicMock()
             mock_response = MagicMock()
@@ -86,7 +86,7 @@ class TestVLMWrapperPredict:
 
     def test_predict_with_stream(self):
         """Test prediction with streaming enabled."""
-        with patch('mobile_use.utils.vlm.OpenAI') as mock_openai:
+        with patch('macro1.utils.vlm.OpenAI') as mock_openai:
             mock_client = MagicMock()
             mock_response = MagicMock()
             mock_client.chat.completions.create.return_value = mock_response
@@ -107,8 +107,8 @@ class TestVLMWrapperPredict:
 
     def test_predict_retry_on_failure(self):
         """Test that predict retries on failure."""
-        with patch('mobile_use.utils.vlm.OpenAI') as mock_openai:
-            with patch('mobile_use.utils.vlm.time.sleep'):  # Skip sleep in tests
+        with patch('macro1.utils.vlm.OpenAI') as mock_openai:
+            with patch('macro1.utils.vlm.time.sleep'):  # Skip sleep in tests
                 mock_client = MagicMock()
                 # Fail twice, succeed on third try
                 mock_client.chat.completions.create.side_effect = [
@@ -134,8 +134,8 @@ class TestVLMWrapperPredict:
 
     def test_predict_max_retry_exceeded(self):
         """Test that predict raises error after max retries."""
-        with patch('mobile_use.utils.vlm.OpenAI') as mock_openai:
-            with patch('mobile_use.utils.vlm.time.sleep'):
+        with patch('macro1.utils.vlm.OpenAI') as mock_openai:
+            with patch('macro1.utils.vlm.time.sleep'):
                 mock_client = MagicMock()
                 mock_client.chat.completions.create.side_effect = Exception("API Error")
                 mock_openai.return_value = mock_client
@@ -155,7 +155,7 @@ class TestVLMWrapperPredict:
 
     def test_predict_passes_vlm_kwargs(self):
         """Test that extra vlm_kwargs are passed to API call."""
-        with patch('mobile_use.utils.vlm.OpenAI') as mock_openai:
+        with patch('macro1.utils.vlm.OpenAI') as mock_openai:
             mock_client = MagicMock()
             mock_response = MagicMock()
             mock_client.chat.completions.create.return_value = mock_response
@@ -178,7 +178,7 @@ class TestVLMWrapperPredict:
 
     def test_predict_with_additional_kwargs(self):
         """Test predict with additional runtime kwargs."""
-        with patch('mobile_use.utils.vlm.OpenAI') as mock_openai:
+        with patch('macro1.utils.vlm.OpenAI') as mock_openai:
             mock_client = MagicMock()
             mock_response = MagicMock()
             mock_client.chat.completions.create.return_value = mock_response
@@ -239,7 +239,7 @@ class TestVLMWrapperIntegration:
     @pytest.mark.integration
     def test_predict_with_image(self, vlm_wrapper, mock_image):
         """Test prediction with image."""
-        from mobile_use.utils.utils import encode_image_url
+        from macro1.utils.utils import encode_image_url
         
         image_url = encode_image_url(mock_image)
         messages = [

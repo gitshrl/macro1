@@ -1,9 +1,9 @@
 # This is the config file for the Qwen3-VL single agent.
 # Choose the `QwenAgent` type to use it.
 # '''
-# import mobile_use
+# import macro1
 # config_path = "config/qwen3_agent.yaml"
-# agent = mobile_use.Agent.from_params(dict(
+# agent = macro1.Agent.from_params(dict(
 #       type="QwenAgent",
 #       config_path=config_path,
 #     ))

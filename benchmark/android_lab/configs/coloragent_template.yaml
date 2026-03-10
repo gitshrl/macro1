@@ -1,7 +1,7 @@
 name: ColorAgent
 
 agent:
-    name: MobileUseAgent
+    name: Macro1Agent
     args:
       agent_config:
 
@@ -20,7 +20,7 @@ agent:
           name: OperatorQwen
           prompt_config: operator_qwen.yaml
           # # To enable knowledge retrieval, enable the following config.
-          # # See mobile_use/utils/rag/README.md for more details.
+          # # See macro1/utils/rag/README.md for more details.
           # knowledge: 
           #   embedding_model_path: <path-to-embedding-model>
           #   knowledge_database_dir: <path-to-explored-knowledge-database>
@@ -30,7 +30,7 @@ agent:
           name: AnswerAgentQwen
           prompt_config: answer_agent_qwen.yaml
           # # To enable knowledge retrieval, enable the following config.
-          # # See mobile_use/utils/rag/README.md for more details.
+          # # See macro1/utils/rag/README.md for more details.
           # knowledge: 
           #   embedding_model_path: <path-to-embedding-model>
           #   knowledge_database_dir: <path-to-explored-knowledge-database>
@@ -65,9 +65,9 @@ agent:
 
 
 task:
-  class: MobileUse_AutoTest
+  class: Macro1_AutoTest
   args:
-    save_dir: "./logs/evaluation_mobile_use"
+    save_dir: "./logs/evaluation_macro1"
     max_rounds: 25
     request_interval: 3
 

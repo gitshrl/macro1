@@ -11,8 +11,8 @@ sys.path = [
     os.path.join(project_home, 'third_party/android_lab')
 ] + sys.path
 
-from benchmark.android_lab.mobile_use_auto_test import *
-from benchmark.android_lab.mobile_use_executor import MobileUseExecutor
+from benchmark.android_lab.macro1_auto_test import *
+from benchmark.android_lab.macro1_executor import Macro1Executor
 
 from third_party.android_lab.agent import get_agent
 from third_party.android_lab.evaluation.configs import AppConfig, TaskConfig

@@ -3,9 +3,9 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "mobile-use"
+name = "macro1"
 version = "0.3.0"
-description = "Mobile Use​: Automate your mobile with AI - Any app, any task."
+description = "Macro1: Automate your mobile with AI - Any app, any task."
 authors = [
     {name = "zhoujiamu"},
     {name = "moxiaoyun"},
@@ -14,10 +14,10 @@ authors = [
     {name = "quxiangmou"},
 ]
 license = {text = "MIT License"}
-readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
   "adbutils>=2.8.0,<3.0.0",
+  "uiautomator2>=3.0.0",
   "colorama>=0.4.6",
   "gradio",
   "jsonlines",

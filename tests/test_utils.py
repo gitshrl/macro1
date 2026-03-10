@@ -1,5 +1,5 @@
 """
-Tests for mobile_use/utils/utils.py
+Tests for macro1/utils/utils.py
 
 Tests the utility functions including image encoding, message generation,
 smart resize, and other helper functions.
@@ -10,7 +10,7 @@ import base64
 from PIL import Image
 import numpy as np
 
-from mobile_use.utils.utils import (
+from macro1.utils.utils import (
     encode_image_url,
     generate_message,
     show_message,
@@ -24,7 +24,7 @@ from mobile_use.utils.utils import (
     is_same_image,
     draw_click_to_image,
 )
-from mobile_use.utils.constants import IMAGE_PLACEHOLDER
+from macro1.utils.constants import IMAGE_PLACEHOLDER
 
 
 class TestEncodeImageUrl:

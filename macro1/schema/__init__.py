@@ -1,0 +1,1 @@
+from macro1.schema.schema import *

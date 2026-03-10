@@ -1,16 +1,25 @@
-# This is an example config file for the Multiagent option in webui.
+# This is the config file for the Macro1 agent framework.
+# Choose the `MultiAgent` type to use it.
+# '''
+# import macro1
+# config_path = "config/macro1.yaml"
+# agent = macro1.Agent.from_params(dict(
+#       type="MultiAgent",
+#       config_path=config_path,
+#     ))
+# '''
 
-# The vlm config will be overriden by the webui settings.
+
 vlm:
   model_name: qwen2.5-vl-72b-instruct
   api_key: xxxxx
   base_url: xxxxx
+  max_tokens: 1024
+  temperature: 0
 
-# The env config will be overriden by the webui settings.
 env:
+  # The serial_no of your android virtual / physical devices, use `adb devices` to find it.
   serial_no: xxxxx
-
-max_steps: 10
 
 operator:
   enabled: true

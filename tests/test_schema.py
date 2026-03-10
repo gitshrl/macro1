@@ -1,5 +1,5 @@
 """
-Tests for mobile_use/schema/schema.py
+Tests for macro1/schema/schema.py
 
 Tests the data models including EnvState, Action, AgentState, AgentStatus,
 and various step/episode data classes.
@@ -9,7 +9,7 @@ import pytest
 from PIL import Image
 from dataclasses import fields
 
-from mobile_use.schema.schema import (
+from macro1.schema.schema import (
     EnvState,
     Action,
     AgentState,
@@ -17,9 +17,9 @@ from mobile_use.schema.schema import (
     VLMCallingData,
     BaseStepData,
     SingleAgentStepData,
-    MobileUseStepData,
+    Macro1StepData,
     BaseEpisodeData,
-    MobileUseEpisodeData,
+    Macro1EpisodeData,
     HierarchicalAgentTaskData,
 )
 
@@ -201,12 +201,12 @@ class TestSingleAgentStepData:
         assert hasattr(step_data, 'vlm_call_history')
 
 
-class TestMobileUseStepData:
-    """Tests for MobileUseStepData dataclass."""
+class TestMacro1StepData:
+    """Tests for Macro1StepData dataclass."""
 
-    def test_create_mobile_use_step_data(self, mock_env_state):
-        """Test creating MobileUseStepData with all fields."""
-        step_data = MobileUseStepData(
+    def test_create_macro1_step_data(self, mock_env_state):
+        """Test creating Macro1StepData with all fields."""
+        step_data = Macro1StepData(
             step_idx=0,
             curr_env_state=mock_env_state,
             thought="Analyzing the screen",
@@ -223,9 +223,9 @@ class TestMobileUseStepData:
         assert step_data.sub_goal == "Open the app"
         assert step_data.step_duration == 1.5
 
-    def test_mobile_use_step_data_default_values(self, mock_env_state):
-        """Test MobileUseStepData default values."""
-        step_data = MobileUseStepData(
+    def test_macro1_step_data_default_values(self, mock_env_state):
+        """Test Macro1StepData default values."""
+        step_data = Macro1StepData(
             step_idx=0,
             curr_env_state=mock_env_state
         )
@@ -260,21 +260,21 @@ class TestBaseEpisodeData:
         assert len(episode.trajectory) == 1
 
 
-class TestMobileUseEpisodeData:
-    """Tests for MobileUseEpisodeData dataclass."""
+class TestMacro1EpisodeData:
+    """Tests for Macro1EpisodeData dataclass."""
 
-    def test_create_mobile_use_episode_data(self):
-        """Test creating MobileUseEpisodeData."""
-        episode = MobileUseEpisodeData(goal="Test task")
+    def test_create_macro1_episode_data(self):
+        """Test creating Macro1EpisodeData."""
+        episode = Macro1EpisodeData(goal="Test task")
         assert episode.goal == "Test task"
         assert episode.trajectory == []
         assert episode.finish_count == 0
         assert episode.memory == ""
 
-    def test_mobile_use_episode_data_with_trajectory(self, mock_env_state):
-        """Test MobileUseEpisodeData with trajectory."""
-        step = MobileUseStepData(step_idx=0, curr_env_state=mock_env_state)
-        episode = MobileUseEpisodeData(
+    def test_macro1_episode_data_with_trajectory(self, mock_env_state):
+        """Test Macro1EpisodeData with trajectory."""
+        step = Macro1StepData(step_idx=0, curr_env_state=mock_env_state)
+        episode = Macro1EpisodeData(
             goal="Test task",
             trajectory=[step],
             finish_count=1,
@@ -290,7 +290,7 @@ class TestHierarchicalAgentTaskData:
 
     def test_create_hierarchical_task_data(self):
         """Test creating HierarchicalAgentTaskData."""
-        episode = MobileUseEpisodeData(goal="Main task")
+        episode = Macro1EpisodeData(goal="Main task")
         task_data = HierarchicalAgentTaskData(
             task="Complete complex task",
             episode_data=episode
@@ -301,8 +301,8 @@ class TestHierarchicalAgentTaskData:
 
     def test_hierarchical_task_data_with_subtasks(self):
         """Test HierarchicalAgentTaskData with subtasks."""
-        episode = MobileUseEpisodeData(goal="Main task")
-        sub_episode = MobileUseEpisodeData(goal="Sub task 1")
+        episode = Macro1EpisodeData(goal="Main task")
+        sub_episode = Macro1EpisodeData(goal="Sub task 1")
         
         task_data = HierarchicalAgentTaskData(
             task="Complex task",
@@ -333,9 +333,9 @@ class TestDataclassFields:
         expected = {'name', 'parameters'}
         assert field_names == expected
 
-    def test_mobile_use_step_data_fields(self):
-        """Verify MobileUseStepData has all expected fields."""
-        field_names = {f.name for f in fields(MobileUseStepData)}
+    def test_macro1_step_data_fields(self):
+        """Verify Macro1StepData has all expected fields."""
+        field_names = {f.name for f in fields(Macro1StepData)}
         expected_fields = {
             'step_idx', 'curr_env_state', 'content', 'action',
             'exec_env_state', 'vlm_call_history', 'thought', 'action_s',
