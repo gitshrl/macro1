@@ -1,0 +1,179 @@
+[
+  {
+    "_id": {
+      "$oid": "69aab49b51fdf035cd02a378"
+    },
+    "proxy": null,
+    "platform": "instagram",
+    "bot": {
+      "id": 32559,
+      "username": "siska_mhrn99",
+      "password": "mhrani9900",
+      "phone": null
+    },
+    "channel": {
+      "name": "device09",
+      "ip": "10.10.1.22",
+      "device_type": "SM-A03"
+    },
+    "action": "like",
+    "detail": {
+      "booster_id": 19784,
+      "method": "postpage",
+      "url": "https://www.instagram.com/p/DTo6AG2k9Mu/",
+      "otp_key": null,
+      "username": "siska_mhrn99",
+      "password": "mhrani9900",
+      "name": "Siska Maharani",
+      "random": 1,
+      "profile_url": "https://www.instagram.com/siska_mhrn99/"
+    },
+    "action_list_url": "http://15.15.15.118:8891/api/macros?action=like&platform=instagram&device=SM-A03",
+    "created_at": {
+      "$date": 1772795042728
+    },
+    "_sample_type": "ig_like_19784"
+  },
+  {
+    "_id": {
+      "$oid": "69aab49c51fdf035cd02a37b"
+    },
+    "proxy": null,
+    "platform": "instagram",
+    "bot": {
+      "id": 32552,
+      "username": "rasiz_ya001",
+      "password": "raisa210",
+      "phone": null
+    },
+    "channel": {
+      "name": "device04",
+      "ip": "10.10.1.22",
+      "device_type": "SM-A03"
+    },
+    "action": "like",
+    "detail": {
+      "booster_id": 19784,
+      "method": "postpage",
+      "url": "https://www.instagram.com/p/DTo6AG2k9Mu/",
+      "otp_key": null,
+      "username": "rasiz_ya001",
+      "password": "raisa210",
+      "name": "Raisa Azka",
+      "random": 4,
+      "profile_url": "https://www.instagram.com/rasiz_ya001/"
+    },
+    "action_list_url": "http://15.15.15.118:8891/api/macros?action=like&platform=instagram&device=SM-A03",
+    "created_at": {
+      "$date": 1772795042728
+    },
+    "_sample_type": "ig_like_19784"
+  },
+  {
+    "_id": {
+      "$oid": "69b0ca0b2f28a9ed37069993"
+    },
+    "proxy": null,
+    "platform": "instagram",
+    "bot": {
+      "id": 22687,
+      "username": "hnifah_latisury",
+      "password": "jakarta25",
+      "phone": null
+    },
+    "channel": {
+      "name": "R9RT705NZMR",
+      "ip": "15.15.15.2",
+      "device_type": "SM-A03"
+    },
+    "action": "comment",
+    "detail": {
+      "booster_id": 19815,
+      "method": "postpage",
+      "url": "https://www.instagram.com/p/DVsxOBHkyMU/?igsh=MXBwYzVzbHo2bHZ2YQ==",
+      "otp_key": null,
+      "text": "Lanjutkan Pak Michael, kerja nyata bapak selalu terlihat",
+      "username": "hnifah_latisury",
+      "password": "jakarta25",
+      "name": "Hanifah latif surya",
+      "random": 3,
+      "profile_url": "https://www.instagram.com/hnifah_latisury/"
+    },
+    "action_list_url": "http://15.15.15.118:8891/api/macros?action=comment&platform=instagram&device=SM-A03",
+    "created_at": {
+      "$date": 1773193742702
+    },
+    "_sample_type": "ig_comment"
+  },
+  {
+    "_id": {
+      "$oid": "69aa438de2474fc786047d95"
+    },
+    "proxy": null,
+    "platform": "youtube",
+    "bot": {
+      "id": 25962,
+      "username": "https://www.youtube.com/@halifah_lowing",
+      "password": "halifah233",
+      "phone": null
+    },
+    "channel": {
+      "name": "R9RT70399AP",
+      "ip": "15.15.15.10",
+      "device_type": "SM-A03"
+    },
+    "action": "follow",
+    "detail": {
+      "booster_id": 19783,
+      "method": "postpage",
+      "url": "https://www.youtube.com/@harimurti_budi3",
+      "otp_key": null,
+      "username": "https://www.youtube.com/@halifah_lowing",
+      "password": "halifah233",
+      "name": "Halifah Lowing",
+      "random": 0,
+      "profile_url": "https://www.youtube.com/@halifah_lowing"
+    },
+    "action_list_url": "http://15.15.15.118:8891/api/macros?action=follow&platform=youtube&device=SM-A03",
+    "created_at": {
+      "$date": 1772767622710
+    },
+    "_sample_type": "yt_follow"
+  },
+  {
+    "_id": {
+      "$oid": "69b11d3e9ec9877b7701d319"
+    },
+    "proxy": null,
+    "platform": "twitter",
+    "bot": {
+      "id": 23299,
+      "username": "siti_aminah232",
+      "password": "siti4444",
+      "phone": null
+    },
+    "channel": {
+      "name": "R9RT705Q2QL",
+      "ip": "15.15.15.36",
+      "device_type": "SM-A03"
+    },
+    "action": "like",
+    "detail": {
+      "booster_id": 19818,
+      "method": "postpage",
+      "url": "https://x.com/Enezator/status/2031399688042328287",
+      "otp_key": null,
+      "n": 1,
+      "username": "siti_aminah232",
+      "password": "siti4444",
+      "name": "Siti Aminah",
+      "random": 3,
+      "profile_url": "https://twitter.com/siti_aminah232"
+    },
+    "action_list_url": "http://15.15.15.118:8891/api/macros?action=like&platform=twitter&device=SM-A03",
+    "created_at": {
+      "$date": 1773215042269
+    },
+    "_sample_type": "tw_like"
+  }
+]

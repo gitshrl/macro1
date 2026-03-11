@@ -1,0 +1,15 @@
+[Unit]
+Description=macro1 worker for %i
+After=network.target
+
+[Service]
+Type=simple
+User=macro-ai
+WorkingDirectory=/home/macro-ai/macro1
+ExecStart=/usr/bin/python3 /home/macro-ai/macro1/run_worker.py %i
+EnvironmentFile=/home/macro-ai/macro1/.env
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
